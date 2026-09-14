@@ -1,0 +1,30 @@
+# Ambiente virtual Python
+.venv/
+venv/
+env/
+
+# Bytecode / cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Bancos de dados locais e logs (dados do usuário, não fazem parte do código)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+logs/
+
+# Build / empacotamento
+build/
+dist/
+*.spec.bak
+*.egg-info/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rpg-audio-shared"
+version = "0.1.0"
+description = "Componentes compartilhados entre os apps do RPG Audio Toolkit"
+requires-python = ">=3.10"
+dependencies = [
+    "mutagen>=1.47",
+    "PySide6>=6.6",
+]
+
+[tool.setuptools.packages.find]
+include = ["rpg_audio_shared*"]
