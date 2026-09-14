@@ -76,9 +76,14 @@ class SoundtrackRepository:
     # ------------------------------------------------------------------
 
     def get_items(self, soundtrack_id: int) -> list[SoundtrackItem]:
+        # IMPORTANTE: "si.id" é renomeado para "item_id" porque "t.*" também
+        # traz uma coluna "id" (tracks.id) — sem o alias, o dict resultante
+        # (que é montado por nome de coluna) teria a segunda ocorrência de
+        # "id" sobrescrevendo a primeira, fazendo o item da soundtrack
+        # "herdar" o id da faixa (quebrando remover/mover/reordenar).
         rows = self._db.query_all(
             """
-            SELECT si.id, si.soundtrack_id, si.section_id, si.track_id, si.position,
+            SELECT si.id AS item_id, si.soundtrack_id, si.section_id, si.track_id, si.position,
                 t.*,
                 (SELECT GROUP_CONCAT(tg.name, char(31)) FROM track_tags tt
                     JOIN tags tg ON tg.id = tt.tag_id WHERE tt.track_id = t.id) AS tags,
@@ -97,7 +102,7 @@ class SoundtrackRepository:
             track = Track.from_row(row)
             items.append(
                 SoundtrackItem(
-                    id=row["id"],
+                    id=row["item_id"],
                     soundtrack_id=row["soundtrack_id"],
                     section_id=row["section_id"],
                     track_id=row["track_id"],

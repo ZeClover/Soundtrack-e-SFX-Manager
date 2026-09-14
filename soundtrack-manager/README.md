@@ -16,6 +16,31 @@ salvamento automático, player integrado e exportação. Recursos avançados
 ficam para uma etapa seguinte — o banco de dados já foi modelado para
 suportá-los sem exigir migração.
 
+## COMO TESTAR NO WINDOWS
+
+Forma mais simples, sem usar linha de comando:
+
+1. Baixe/clone o repositório inteiro (a pasta `shared/` ao lado de
+   `soundtrack-manager/` é necessária — não copie só esta pasta).
+2. Abra a pasta `soundtrack-manager`.
+3. Dê **dois cliques em `ABRIR.bat`**.
+   - Na primeira vez, ele instala tudo sozinho (cria um ambiente Python
+     isolado em `.venv` e baixa as dependências) — pode demorar alguns
+     minutos e vai pedir para apertar uma tecla ao final da instalação.
+   - Nas próximas vezes, `ABRIR.bat` já abre o programa direto.
+4. Se preferir instalar manualmente antes (ou reinstalar do zero após
+   apagar a pasta `.venv`), dê dois cliques em `INSTALAR.bat` primeiro.
+
+Pré-requisito: **Python 3.10 ou mais recente** instalado
+([python.org/downloads](https://www.python.org/downloads/)), marcando a
+opção **"Add python.exe to PATH"** durante a instalação do Python. O
+`FFmpeg` é opcional — só é necessário se você usar "Converter tudo para
+MP3" ao exportar uma soundtrack; sem ele, o resto do programa funciona
+normalmente (o `ABRIR.bat`/`INSTALAR.bat` avisam se ele não for encontrado).
+
+Se algo der errado: apague a pasta `.venv` (dentro de `soundtrack-manager`)
+e rode `INSTALAR.bat` novamente.
+
 ## Instalação (desenvolvimento)
 
 Requer Python 3.10+ e [FFmpeg](https://ffmpeg.org/download.html) instalado e
@@ -63,6 +88,8 @@ não implementado nesta fase.
 
 ```text
 soundtrack-manager/
+    ABRIR.bat                # Windows: instala (1a vez) e abre o programa
+    INSTALAR.bat              # Windows: instala/reinstala as dependências
     main.py                  # ponto de entrada (python main.py)
     app/
         config.py             # caminhos e constantes do app

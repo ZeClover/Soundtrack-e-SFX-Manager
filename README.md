@@ -61,6 +61,11 @@ claro — não é uma suíte com abas.
 
 ## Começando (RPG Soundtrack Manager)
 
+**No Windows:** entre na pasta `soundtrack-manager` e dê dois cliques em
+`ABRIR.bat` — ele instala tudo sozinho na primeira vez.
+
+**Linha de comando (qualquer sistema):**
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
@@ -69,7 +74,8 @@ cd soundtrack-manager && python main.py
 ```
 
 Veja [`soundtrack-manager/README.md`](soundtrack-manager/README.md) para
-detalhes (testes, estrutura, banco de dados, atalhos).
+detalhes (instruções completas de teste no Windows, testes automatizados,
+estrutura, banco de dados, atalhos).
 
 ## Roadmap
 

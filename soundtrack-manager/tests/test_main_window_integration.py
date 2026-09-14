@@ -114,6 +114,56 @@ def test_full_flow_scan_browse_favorite_tag_soundtrack_export(main_window, tmp_p
     assert (library / "Boss Final.mp3").exists()
 
 
+@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason="ffmpeg não disponível neste ambiente")
+def test_close_and_reopen_preserves_data(tmp_path: Path, qt_core_app):
+    """Item 29: fechar e reabrir o programa preserva biblioteca, favoritos, tags e soundtracks."""
+    from app.ui.main_window import MainWindow
+
+    library = tmp_path / "Musicas"
+    library.mkdir()
+    _make_silent_mp3(library / "Tema Principal.mp3")
+    _make_silent_mp3(library / "Boss Final.mp3")
+
+    db_path = tmp_path / "persist_test.db"
+
+    # --- Primeira "sessão": escaneia, favorita, taggeia e cria soundtrack ---
+    window1 = MainWindow(db_path=db_path)
+    window1.settings_repo.set("library_root_path", str(library))
+    _run_scan_synchronously(window1, library)
+
+    tracks = window1.library_panel.model.all_tracks()
+    boss = next(t for t in tracks if t.title == "Boss Final")
+    window1._on_toggle_favorite(boss)
+    window1._on_tags_edited(boss.id, ["boss", "combate"])
+    window1._on_note_edited(boss.id, "Usar no confronto final.")
+
+    soundtrack = window1.soundtrack_repo.create("Darkrem — Soundtrack Principal")
+    window1._reload_soundtracks(select_id=soundtrack.id)
+    for t in tracks:
+        window1._on_add_to_soundtrack(t)
+
+    window1.db.close()  # fecha o programa
+
+    # --- Segunda "sessão": reabre apontando para o MESMO banco ---
+    window2 = MainWindow(db_path=db_path)
+    try:
+        # _restore_last_library() já roda no __init__ e recarrega a última pasta
+        reopened_tracks = window2.library_panel.model.all_tracks()
+        assert len(reopened_tracks) == 2
+
+        reopened_boss = next(t for t in reopened_tracks if t.title == "Boss Final")
+        assert reopened_boss.is_favorite is True
+        assert reopened_boss.tags == ["boss", "combate"]
+        assert reopened_boss.note == "Usar no confronto final."
+
+        soundtracks = window2.soundtrack_repo.list_all()
+        assert len(soundtracks) == 1
+        assert soundtracks[0].name == "Darkrem — Soundtrack Principal"
+        assert soundtracks[0].track_count == 2
+    finally:
+        window2.db.close()
+
+
 def _run_scan_synchronously(main_window, folder: Path) -> None:
     """Executa o LibraryScanner de forma síncrona (sem QThread) apenas para o teste."""
     from app.services.library_scanner import LibraryScanner

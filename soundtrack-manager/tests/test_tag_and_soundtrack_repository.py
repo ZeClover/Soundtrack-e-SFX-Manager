@@ -77,6 +77,44 @@ def test_soundtrack_add_reorder_remove(soundtrack_repo, track_repo, library_root
     assert all(item.track_id != items[0].track_id for item in remaining)
 
 
+def test_soundtrack_item_id_is_never_confused_with_track_id(soundtrack_repo, track_repo, library_root_repo):
+    """Regressão: get_items() selecionava `si.id` e depois `t.*` (que também tem
+    coluna `id`) na mesma query — como o resultado é montado por nome de coluna,
+    o id da faixa sobrescrevia o id do item, quebrando remover/mover/reordenar
+    sempre que os dois ids fossem diferentes (o caso comum na vida real, já que
+    a ordem de descoberta do scanner raramente bate com a ordem de adição)."""
+    root_id = library_root_repo.get_or_create("/library")
+
+    # Cria as faixas em ordem C, B, A — para que os track_id NÃO coincidam
+    # com a ordem em que serão adicionadas à soundtrack (A, B, C).
+    track_ids = {}
+    for title in ["C", "B", "A"]:
+        track_ids[title] = track_repo.upsert_from_scan(
+            library_root_id=root_id, absolute_path=f"/library/{title}.mp3",
+            relative_path=f"{title}.mp3", filename=f"{title}.mp3", extension=".mp3",
+            title=title, artist=None, album=None, duration_seconds=10, file_size=100,
+            partial_hash=title, has_embedded_cover=False,
+        )
+    # track_ids agora é {"C": 1, "B": 2, "A": 3} — divergente da ordem de uso.
+
+    st = soundtrack_repo.create("Teste")
+    added = {title: soundtrack_repo.add_track(st.id, track_ids[title]) for title in ["A", "B", "C"]}
+    # added["A"].id == 1 (primeiro item inserido), mas track_ids["A"] == 3.
+    assert added["A"].id != track_ids["A"]
+
+    items = soundtrack_repo.get_items(st.id)
+    by_title = {item.track.title: item for item in items}
+    for title in ["A", "B", "C"]:
+        assert by_title[title].id == added[title].id, f"item.id incorreto para {title}"
+        assert by_title[title].track_id == track_ids[title]
+
+    # Remover "A" deve remover exatamente o item de A, não o item cujo id
+    # coincide com o track_id de A.
+    soundtrack_repo.remove_item(by_title["A"].id, st.id)
+    remaining_titles = {item.track.title for item in soundtrack_repo.get_items(st.id)}
+    assert remaining_titles == {"B", "C"}
+
+
 def test_soundtrack_has_track_detects_duplicate(soundtrack_repo, sample_track_id):
     st = soundtrack_repo.create("Sessão 14")
     assert soundtrack_repo.has_track(st.id, sample_track_id) is False
