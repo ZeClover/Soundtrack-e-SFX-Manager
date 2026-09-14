@@ -105,14 +105,21 @@ class ExportService:
 
 def _convert_to_mp3(source: Path, target: Path, quality: str) -> None:
     bitrate = _BITRATE_BY_QUALITY.get(quality, "192k")
-    result = subprocess.run(
-        [
-            "ffmpeg", "-y", "-i", str(source),
-            "-codec:a", "libmp3lame", "-b:a", bitrate,
-            str(target),
-        ],
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg", "-y", "-i", str(source),
+                "-codec:a", "libmp3lame", "-b:a", bitrate,
+                str(target),
+            ],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            "FFmpeg não foi encontrado. Instale o FFmpeg e adicione-o ao PATH do "
+            "Windows para poder converter para MP3, ou use \"Manter formato original\"."
+        ) from exc
+
     if result.returncode != 0:
         raise RuntimeError(f"ffmpeg falhou ao converter: {result.stderr.strip()[-300:]}")

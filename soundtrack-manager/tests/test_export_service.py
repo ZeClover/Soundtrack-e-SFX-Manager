@@ -126,6 +126,30 @@ def test_export_conflict_overwrite(tmp_path: Path):
     assert target.read_bytes() == b"v2-bytes"
 
 
+def test_export_gives_friendly_error_when_ffmpeg_missing(tmp_path: Path, monkeypatch):
+    """Item 58: erro amigável (não traceback cru) quando o FFmpeg não está instalado."""
+    source_dir = tmp_path / "source"
+    source_dir.mkdir()
+    dest_dir = tmp_path / "dest"
+    dest_dir.mkdir()
+    track = _make_track(source_dir, "SemFFmpeg", suffix=".wav")
+
+    def fake_run(*args, **kwargs):
+        raise FileNotFoundError("ffmpeg nao encontrado no PATH")
+
+    monkeypatch.setattr("app.services.export_service.subprocess.run", fake_run)
+
+    report = ExportService().export_soundtrack(
+        "Teste", [_item(track, 1)],
+        ExportOptions(destination_folder=dest_dir, numbering=False, convert_to_mp3=True),
+    )
+
+    assert report.exported_count == 0
+    assert report.has_errors
+    assert "FFmpeg não foi encontrado" in report.errors[0]
+    assert "Traceback" not in report.errors[0]
+
+
 @pytest.mark.skipif(not FFMPEG_AVAILABLE, reason="ffmpeg não disponível neste ambiente")
 def test_export_converts_to_mp3_when_requested(tmp_path: Path):
     source_dir = tmp_path / "source"
