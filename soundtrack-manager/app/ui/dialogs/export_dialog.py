@@ -23,7 +23,14 @@ from app.services.export_service import ExportOptions
 
 
 class ExportDialog(QDialog):
-    def __init__(self, soundtrack_name: str, track_count: int, default_folder: str = "", parent=None):
+    def __init__(
+        self,
+        soundtrack_name: str,
+        track_count: int,
+        default_folder: str = "",
+        has_sections: bool = False,
+        parent=None,
+    ):
         super().__init__(parent)
         self.setWindowTitle(f"Exportar — {soundtrack_name}")
         self.setMinimumWidth(420)
@@ -70,6 +77,13 @@ class ExportDialog(QDialog):
         self.conflict_combo.addItem("Ignorar", "skip")
         form.addRow("Se o arquivo já existir:", self.conflict_combo)
 
+        self.section_flat_radio = QRadioButton("Tudo na mesma pasta")
+        self.section_flat_radio.setChecked(True)
+        self.section_subfolders_radio = QRadioButton("Uma subpasta por seção")
+        if has_sections:
+            form.addRow("Seções:", self.section_flat_radio)
+            form.addRow("", self.section_subfolders_radio)
+
         layout.addLayout(form)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
@@ -96,4 +110,5 @@ class ExportDialog(QDialog):
             convert_to_mp3=self.convert_mp3_radio.isChecked(),
             mp3_quality=self.quality_combo.currentData() or "media",
             conflict_policy=self.conflict_combo.currentData() or "rename",
+            section_mode="subfolders" if self.section_subfolders_radio.isChecked() else "flat",
         )

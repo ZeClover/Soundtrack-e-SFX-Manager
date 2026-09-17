@@ -22,6 +22,9 @@ class CampaignRepository:
         cursor = self._db.execute("INSERT INTO campaigns (name) VALUES (?)", (name,))
         return Campaign(id=cursor.lastrowid, name=name)
 
+    def rename(self, campaign_id: int, name: str) -> None:
+        self._db.execute("UPDATE campaigns SET name = ? WHERE id = ?", (name.strip(), campaign_id))
+
     def delete(self, campaign_id: int) -> None:
         self._db.execute("DELETE FROM campaigns WHERE id = ?", (campaign_id,))
 

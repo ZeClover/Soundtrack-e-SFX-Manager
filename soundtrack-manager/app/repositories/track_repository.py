@@ -243,7 +243,9 @@ class TrackRepository:
             SELECT
                 COUNT(*) AS total,
                 SUM(CASE WHEN t.is_favorite = 1 THEN 1 ELSE 0 END) AS favorites,
-                SUM(CASE WHEN t.play_count > 0 OR t.is_favorite = 1 THEN 1 ELSE 0 END) AS evaluated,
+                SUM(CASE WHEN t.play_count > 0 OR t.is_favorite = 1 OR EXISTS (
+                    SELECT 1 FROM soundtrack_items si WHERE si.track_id = t.id
+                ) THEN 1 ELSE 0 END) AS evaluated,
                 SUM(CASE WHEN EXISTS (
                     SELECT 1 FROM soundtrack_items si WHERE si.track_id = t.id
                 ) THEN 1 ELSE 0 END) AS used_in_soundtracks

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QItemSelectionModel, QTimer, Qt, Signal
+from PySide6.QtCore import QItemSelectionModel, QStringListModel, QTimer, Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QCompleter,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -30,7 +31,12 @@ class LibraryPanel(QWidget):
     add_to_soundtrack_requested = Signal(object)  # Track (ou lista via seleção múltipla, ver get_selected_tracks)
     favorite_toggle_requested = Signal(object)  # Track
     tags_edited = Signal(int, list)  # track_id, tag_names
+    campaigns_edited = Signal(int, list)  # track_id, campaign_names
     note_edited = Signal(int, str)  # track_id, note
+    random_requested = Signal()
+    triage_requested = Signal()
+    locate_file_requested = Signal(object)  # Track
+    remove_from_library_requested = Signal(object)  # Track
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -44,7 +50,17 @@ class LibraryPanel(QWidget):
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("Buscar por título, artista, tag, pasta, observação...")
         self.search_box.setClearButtonEnabled(True)
-        search_row.addWidget(self.search_box)
+        search_row.addWidget(self.search_box, stretch=1)
+
+        self.random_button = QPushButton("🎲 Aleatório")
+        self.random_button.setToolTip("Tocar uma música aleatória entre as que estão filtradas agora")
+        self.random_button.clicked.connect(self.random_requested)
+        search_row.addWidget(self.random_button)
+
+        self.triage_button = QPushButton("Modo Triagem")
+        self.triage_button.clicked.connect(self.triage_requested)
+        search_row.addWidget(self.triage_button)
+
         layout.addLayout(search_row)
 
         self._debounce = QTimer(self)
@@ -110,8 +126,22 @@ class LibraryPanel(QWidget):
         self.tags_edit = QLineEdit()
         self.tags_edit.setPlaceholderText("boss, combate, épico (separadas por vírgula)")
         self.tags_edit.editingFinished.connect(self._on_tags_edited)
+        self._tags_completer = QCompleter([], self)
+        self._tags_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.tags_edit.setCompleter(self._tags_completer)
         tags_row.addWidget(self.tags_edit)
         v.addLayout(tags_row)
+
+        campaigns_row = QHBoxLayout()
+        campaigns_row.addWidget(QLabel("Campanhas:"))
+        self.campaigns_edit = QLineEdit()
+        self.campaigns_edit.setPlaceholderText("Darkrem, One Piece (separadas por vírgula)")
+        self.campaigns_edit.editingFinished.connect(self._on_campaigns_edited)
+        self._campaigns_completer = QCompleter([], self)
+        self._campaigns_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.campaigns_edit.setCompleter(self._campaigns_completer)
+        campaigns_row.addWidget(self.campaigns_edit)
+        v.addLayout(campaigns_row)
 
         note_row = QHBoxLayout()
         note_row.addWidget(QLabel("Observação:"))
@@ -135,11 +165,18 @@ class LibraryPanel(QWidget):
         self.favorite_button.setEnabled(enabled)
         self.add_button.setEnabled(enabled)
         self.tags_edit.setEnabled(enabled)
+        self.campaigns_edit.setEnabled(enabled)
         self.note_edit.setEnabled(enabled)
 
     # ------------------------------------------------------------------
     # API pública
     # ------------------------------------------------------------------
+
+    def set_available_tags(self, names: list[str]) -> None:
+        self._tags_completer.setModel(QStringListModel(names, self._tags_completer))
+
+    def set_available_campaigns(self, names: list[str]) -> None:
+        self._campaigns_completer.setModel(QStringListModel(names, self._campaigns_completer))
 
     def set_tracks(self, tracks: list[Track]) -> None:
         selected_id = self._current_track.id if self._current_track else None
@@ -209,6 +246,9 @@ class LibraryPanel(QWidget):
         self.tags_edit.blockSignals(True)
         self.tags_edit.setText(", ".join(track.tags))
         self.tags_edit.blockSignals(False)
+        self.campaigns_edit.blockSignals(True)
+        self.campaigns_edit.setText(", ".join(track.campaigns))
+        self.campaigns_edit.blockSignals(False)
         self.note_edit.blockSignals(True)
         self.note_edit.setPlainText(track.note)
         self.note_edit.blockSignals(False)
@@ -232,6 +272,12 @@ class LibraryPanel(QWidget):
         names = [t.strip() for t in self.tags_edit.text().split(",") if t.strip()]
         self.tags_edited.emit(self._current_track.id, names)
 
+    def _on_campaigns_edited(self) -> None:
+        if not self._current_track:
+            return
+        names = [c.strip() for c in self.campaigns_edit.text().split(",") if c.strip()]
+        self.campaigns_edited.emit(self._current_track.id, names)
+
     def _on_note_edited(self) -> None:
         if not self._current_track:
             return
@@ -243,6 +289,17 @@ class LibraryPanel(QWidget):
             return
         track = self.model.data(index, TrackObjectRole)
         menu = QMenu(self)
+
+        if track.is_missing:
+            locate_action = menu.addAction("Localizar arquivo...")
+            remove_action = menu.addAction("Remover da biblioteca")
+            chosen = menu.exec(self.table.viewport().mapToGlobal(pos))
+            if chosen == locate_action:
+                self.locate_file_requested.emit(track)
+            elif chosen == remove_action:
+                self.remove_from_library_requested.emit(track)
+            return
+
         play_action = menu.addAction("▶ Tocar")
         fav_action = menu.addAction("★ Alternar favorito")
         add_action = menu.addAction("＋ Adicionar à Soundtrack")

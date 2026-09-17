@@ -22,8 +22,8 @@ def _make_track(tmp_path: Path, name: str, suffix: str = ".mp3", content: bytes 
     )
 
 
-def _item(track: Track, position: int) -> SoundtrackItem:
-    return SoundtrackItem(id=position, soundtrack_id=1, section_id=None, track_id=track.id, position=position, track=track)
+def _item(track: Track, position: int, section_id: int | None = None) -> SoundtrackItem:
+    return SoundtrackItem(id=position, soundtrack_id=1, section_id=section_id, track_id=track.id, position=position, track=track)
 
 
 def test_export_copies_files_with_numbering(tmp_path: Path):

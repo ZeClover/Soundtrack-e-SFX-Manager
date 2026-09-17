@@ -6,9 +6,11 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -39,7 +41,22 @@ class FiltersPanel(QWidget):
         self.missing_checkbox.toggled.connect(self.filters_changed)
         layout.addWidget(self.missing_checkbox)
 
-        layout.addWidget(_section_title("Campanha"))
+        self.unrated_checkbox = QCheckBox("Somente não avaliadas")
+        self.unrated_checkbox.setToolTip(
+            "Músicas nunca ouvidas, sem favorito e ainda não usadas em nenhuma soundtrack"
+        )
+        self.unrated_checkbox.toggled.connect(self.filters_changed)
+        layout.addWidget(self.unrated_checkbox)
+
+        campaign_header = QHBoxLayout()
+        campaign_header.addWidget(_section_title("Campanha"))
+        campaign_header.addStretch(1)
+        self.manage_campaigns_button = QPushButton("Gerenciar...")
+        self.manage_campaigns_button.setFlat(True)
+        self.manage_campaigns_button.setStyleSheet("color: #5b8cff; padding: 0;")
+        campaign_header.addWidget(self.manage_campaigns_button)
+        layout.addLayout(campaign_header)
+
         self.campaign_combo = QComboBox()
         self.campaign_combo.addItem("Todas", None)
         self.campaign_combo.currentIndexChanged.connect(self.filters_changed)
@@ -91,6 +108,10 @@ class FiltersPanel(QWidget):
     @property
     def missing_only(self) -> bool:
         return self.missing_checkbox.isChecked()
+
+    @property
+    def unrated_only(self) -> bool:
+        return self.unrated_checkbox.isChecked()
 
     @property
     def campaign_id(self) -> int | None:

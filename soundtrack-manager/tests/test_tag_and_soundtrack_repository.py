@@ -42,6 +42,23 @@ def test_campaign_association(campaign_repo, track_repo, sample_track_id):
     assert len(results) == 1
 
 
+def test_campaign_rename_and_delete(campaign_repo, track_repo, sample_track_id):
+    campaign_repo.set_campaigns_for_track(sample_track_id, ["Darkrem"])
+    darkrem = campaign_repo.get_or_create("Darkrem")
+
+    campaign_repo.rename(darkrem.id, "Darkrem Remasterizado")
+    names = [c.name for c in campaign_repo.list_all()]
+    assert names == ["Darkrem Remasterizado"]
+
+    track = track_repo.get_by_id(sample_track_id)
+    assert track.campaigns == ["Darkrem Remasterizado"]
+
+    campaign_repo.delete(darkrem.id)
+    assert campaign_repo.list_all() == []
+    track_after = track_repo.get_by_id(sample_track_id)
+    assert track_after.campaigns == []  # a musica continua, so perde a associacao
+
+
 def test_soundtrack_add_reorder_remove(soundtrack_repo, track_repo, library_root_repo):
     root_id = library_root_repo.get_or_create("/library")
     ids = []

@@ -118,3 +118,34 @@ def test_stats_counts_total_favorites_and_used(track_repo, soundtrack_repo, samp
     assert stats["total"] == 1
     assert stats["favorites"] == 1
     assert stats["used_in_soundtracks"] == 1
+
+
+def test_stats_evaluated_counts_favorite_played_or_used_in_soundtrack(
+    track_repo, soundtrack_repo, library_root_repo
+):
+    """Item 70/71: 'avaliada' = ouvida OU favorita OU usada em soundtrack."""
+    root_id = library_root_repo.get_or_create("/library")
+
+    def make(name):
+        return track_repo.upsert_from_scan(
+            library_root_id=root_id, absolute_path=f"/library/{name}.mp3", relative_path=f"{name}.mp3",
+            filename=f"{name}.mp3", extension=".mp3", title=name, artist=None, album=None,
+            duration_seconds=10, file_size=100, partial_hash=name, has_embedded_cover=False,
+        )
+
+    never_heard = make("nunca-ouvida")
+    heard = make("ouvida")
+    favorite = make("favorita")
+    used = make("usada")
+
+    track_repo.register_play(heard)
+    track_repo.set_favorite(favorite, True)
+    st = soundtrack_repo.create("Darkrem")
+    soundtrack_repo.add_track(st.id, used)
+
+    stats = track_repo.stats()
+    assert stats["total"] == 4
+    assert stats["evaluated"] == 3  # tudo, exceto never_heard
+
+    unrated = track_repo.find(TrackFilter(unrated_only=True))
+    assert [t.id for t in unrated] == [never_heard]

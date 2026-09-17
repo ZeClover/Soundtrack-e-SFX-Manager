@@ -11,7 +11,7 @@ RPG Audio Downloader          (planejado — Etapa 5)
     ↓
 Biblioteca geral de músicas
     ↓
-RPG Soundtrack Manager        (MVP pronto — Etapa 2)
+RPG Soundtrack Manager        (Etapas 2 e 3 prontas)
     ↓
 Soundtrack organizada de uma campanha
 
@@ -30,7 +30,7 @@ claro — não é uma suíte com abas.
 | App | Pasta | Função | Status |
 |---|---|---|---|
 | RPG Audio Downloader | `downloader/` | Baixar áudio (yt-dlp + FFmpeg) e organizar em pastas | Planejado |
-| **RPG Soundtrack Manager** | `soundtrack-manager/` | Biblioteca de músicas, player, tags, favoritos, soundtracks por campanha, exportação | **MVP funcional** |
+| **RPG Soundtrack Manager** | `soundtrack-manager/` | Biblioteca de músicas, player, tags, campanhas, soundtracks com seções, modo triagem, duplicados, exportação | **Etapas 2 e 3 prontas** |
 | RPG SFX Manager | `sfx-manager/` | Biblioteca de efeitos sonoros, reprodução rápida, packs de SFX | Planejado |
 
 ## Arquitetura adotada
@@ -82,8 +82,9 @@ estrutura, banco de dados, atalhos).
 1. ~~Arquitetura da suíte~~ ✅
 2. ~~RPG Soundtrack Manager — MVP~~ ✅ (biblioteca, scanner, banco, player,
    busca, favoritos, tags, soundtrack com salvamento automático, exportação)
-3. Soundtrack Manager — experiência avançada (modo triagem, seções,
-   histórico, aleatório, filtro "não avaliadas", campanhas na UI, duplicados)
+3. ~~Soundtrack Manager — experiência avançada~~ ✅ (modo triagem, seções de
+   soundtrack, exportação com seções, histórico, aleatório, filtro "não
+   avaliadas", campanhas na UI, detector de duplicados, arquivos ausentes)
 4. RPG SFX Manager
 5. RPG Audio Downloader
 6. Build dos três executáveis Windows (PyInstaller)

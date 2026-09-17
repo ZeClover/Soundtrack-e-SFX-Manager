@@ -9,12 +9,13 @@ Parte da suíte **RPG Audio Toolkit** (veja o [README da raiz](../README.md)).
 
 ## Status
 
-MVP funcional (Etapa 2 do roadmap do projeto): biblioteca, scanner, busca,
-favoritos, tags, soundtrack (criar/adicionar/reordenar/remover) com
-salvamento automático, player integrado e exportação. Recursos avançados
-(modo triagem, seções, histórico, campanhas na UI, detecção de duplicados)
-ficam para uma etapa seguinte — o banco de dados já foi modelado para
-suportá-los sem exigir migração.
+Etapas 2 e 3 do roadmap do projeto concluídas: biblioteca, scanner, busca,
+favoritos, tags, campanhas, observações, soundtrack com seções opcionais
+(criar/adicionar/reordenar/remover, mover músicas entre seções) e
+salvamento automático, player integrado, modo triagem, histórico de
+reprodução, botão aleatório, filtro "não avaliadas", detector de
+duplicados, tratamento de arquivos ausentes e exportação (com ou sem
+seções, em subpastas ou lista única).
 
 ## COMO TESTAR NO WINDOWS
 
@@ -75,9 +76,12 @@ pytest
 Os testes rodam em modo *headless* (`QT_QPA_PLATFORM=offscreen`, configurado
 automaticamente em `tests/conftest.py`) e cobrem: scanner de biblioteca,
 hashing/identificação de arquivos, sanitização de nomes para Windows,
-repositórios do banco, exportação (numeração, conflitos, conversão) e a
-navegação de playlist do player. Alguns testes que dependem do `ffmpeg`
-são pulados automaticamente se ele não estiver disponível.
+repositórios do banco (incluindo seções de soundtrack), exportação
+(numeração, conflitos, conversão, seções em subpastas), navegação de
+playlist do player, escolha aleatória sem repetição imediata, detector de
+duplicados (confirmado/possível) e os diálogos de triagem e histórico.
+Alguns testes que dependem do `ffmpeg` são pulados automaticamente se ele
+não estiver disponível.
 
 ## Build (executável Windows)
 
@@ -96,11 +100,11 @@ soundtrack-manager/
         database/              # schema SQL + wrapper de conexão SQLite
         models/                 # dataclasses (Track, Soundtrack, Tag, Campaign...)
         repositories/            # acesso ao banco (uma classe por entidade)
-        services/                # scanner (QThread), player, exportação
+        services/                # scanner (QThread), player, exportação, duplicados, aleatório
         ui/
             main_window.py        # orquestra os painéis e a lógica da app
-            widgets/                # painéis: filtros, biblioteca, soundtrack, player
-            dialogs/                # exportar, relatório de exportação, progresso do scan
+            widgets/                # painéis: filtros, biblioteca, soundtrack (com seções), player
+            dialogs/                # exportar, triagem, histórico, duplicados, campanhas, progresso do scan
     tests/                    # pytest (banco, scanner, exportação, UI)
 ```
 
@@ -131,7 +135,7 @@ salvas a cada alteração — não existe um botão "Salvar".
 
 ## Atalhos de teclado
 
-Funcionam apenas quando o foco não está em um campo de texto.
+Na janela principal, funcionam apenas quando o foco não está em um campo de texto.
 
 | Tecla     | Ação                                  |
 |-----------|----------------------------------------|
@@ -139,3 +143,36 @@ Funcionam apenas quando o foco não está em um campo de texto.
 | `Enter`   | Adicionar música selecionada à soundtrack |
 | `F`       | Favoritar / desfavoritar               |
 | `↑` / `↓` | Navegar pela lista da biblioteca        |
+
+No **Modo Triagem** (botão "Modo Triagem" ao lado da busca):
+
+| Tecla     | Ação                    |
+|-----------|--------------------------|
+| `Espaço`  | Play / Pause             |
+| `←` / `→` | Música anterior / próxima |
+| `A`       | Adicionar à soundtrack atual |
+| `F`       | Favoritar / desfavoritar |
+
+## Recursos avançados (Etapa 3)
+
+- **Seções de soundtrack**: botão "＋ Seção" no painel direito; clique com o
+  botão direito em um cabeçalho de seção para renomear, mover ou remover
+  (remover uma seção não apaga as músicas, só as desagrupa). Arrastar uma
+  música para debaixo de outro cabeçalho move ela para aquela seção.
+- **Exportação com seções**: ao exportar uma soundtrack que tem seções, é
+  possível escolher entre tudo em uma pasta só ou uma subpasta por seção.
+- **Modo Triagem**: botão ao lado da busca — toca a lista atual (respeitando
+  os filtros ligados) em tela cheia, com atalhos para decidir rápido.
+- **Histórico**: botão "🕘 Histórico" na barra de ferramentas mostra as
+  últimas músicas ouvidas.
+- **Aleatório**: botão "🎲 Aleatório" toca uma música aleatória entre as que
+  estão filtradas no momento, evitando repetir as últimas tocadas.
+- **Campanhas**: associe uma música a uma ou mais campanhas no campo
+  "Campanhas" (como as tags); crie/renomeie/apague campanhas em "Gerenciar..."
+  no painel de filtros.
+- **Detector de duplicados**: botão "Localizar duplicados" na barra de
+  ferramentas. Nunca remove nada sozinho — mostra os grupos (confirmado por
+  hash, ou possível por nome/tamanho/duração) para você decidir.
+- **Arquivos ausentes**: clique com o botão direito numa música marcada como
+  ausente para "Localizar arquivo..." (sem perder tags/favoritos/campanhas)
+  ou "Remover da biblioteca" (nunca apaga o arquivo do disco).
