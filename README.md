@@ -17,7 +17,7 @@ Soundtrack organizada de uma campanha
 
 Biblioteca de efeitos sonoros
     ↓
-RPG SFX Manager                (planejado — Etapa 4)
+RPG SFX Manager                (Etapa 4 pronta)
     ↓
 Coleções/packs de SFX para campanhas
 ```
@@ -31,7 +31,7 @@ claro — não é uma suíte com abas.
 |---|---|---|---|
 | RPG Audio Downloader | `downloader/` | Baixar áudio (yt-dlp + FFmpeg) e organizar em pastas | Planejado |
 | **RPG Soundtrack Manager** | `soundtrack-manager/` | Biblioteca de músicas, player, tags, campanhas, soundtracks com seções, modo triagem, duplicados, exportação | **Etapas 2 e 3 prontas** |
-| RPG SFX Manager | `sfx-manager/` | Biblioteca de efeitos sonoros, reprodução rápida, packs de SFX | Planejado |
+| **RPG SFX Manager** | `sfx-manager/` | Biblioteca de efeitos sonoros por categoria, reprodução rápida/simultânea, hotkeys, packs de SFX, duplicados, exportação | **Etapa 4 pronta** |
 
 ## Arquitetura adotada
 
@@ -59,23 +59,31 @@ claro — não é uma suíte com abas.
   compartilhado e formatação. Instalado em modo editável por cada app; cada
   app continua rodando e sendo empacotado (`.exe`) de forma independente.
 
-## Começando (RPG Soundtrack Manager)
+## Começando
 
-**No Windows:** entre na pasta `soundtrack-manager` e dê dois cliques em
-`ABRIR.bat` — ele instala tudo sozinho na primeira vez.
+**No Windows:** entre na pasta do app desejado (`soundtrack-manager` ou
+`sfx-manager`) e dê dois cliques em `ABRIR.bat` — ele instala tudo sozinho
+na primeira vez.
 
 **Linha de comando (qualquer sistema):**
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
+
+# Soundtrack Manager
 pip install -r soundtrack-manager/requirements.txt
 cd soundtrack-manager && python main.py
+
+# SFX Manager
+pip install -r sfx-manager/requirements.txt
+cd sfx-manager && python main.py
 ```
 
-Veja [`soundtrack-manager/README.md`](soundtrack-manager/README.md) para
-detalhes (instruções completas de teste no Windows, testes automatizados,
-estrutura, banco de dados, atalhos).
+Veja [`soundtrack-manager/README.md`](soundtrack-manager/README.md) e
+[`sfx-manager/README.md`](sfx-manager/README.md) para detalhes (instruções
+completas de teste no Windows, testes automatizados, estrutura, banco de
+dados, atalhos).
 
 ## Roadmap
 
@@ -85,6 +93,8 @@ estrutura, banco de dados, atalhos).
 3. ~~Soundtrack Manager — experiência avançada~~ ✅ (modo triagem, seções de
    soundtrack, exportação com seções, histórico, aleatório, filtro "não
    avaliadas", campanhas na UI, detector de duplicados, arquivos ausentes)
-4. RPG SFX Manager
+4. ~~RPG SFX Manager~~ ✅ (biblioteca com categorias automáticas, cards/lista,
+   reprodução simultânea, hotkeys, packs, detector de duplicados, arquivos
+   ausentes, exportação)
 5. RPG Audio Downloader
 6. Build dos três executáveis Windows (PyInstaller)
