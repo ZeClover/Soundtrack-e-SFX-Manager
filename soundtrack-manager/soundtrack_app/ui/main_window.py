@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections import deque
+from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -81,6 +82,10 @@ class MainWindow(QWidget):
 
         self._current_library_root_id: int | None = None
         self._current_soundtrack_id: int | None = None
+        # Preenchido pelo Studio (item 14 da Etapa 6) pra pré-selecionar o
+        # comportamento de duplicados salvo em Configurações; no app
+        # standalone fica None e o diálogo usa seu próprio padrão de sempre.
+        self._default_conflict_policy_provider: Callable[[], str] | None = None
         self._scanner: LibraryScanner | None = None
         self._scan_dialog: ScanProgressDialog | None = None
         self._recent_random_ids: deque[int] = deque(maxlen=_RANDOM_NO_REPEAT_COUNT)
@@ -237,10 +242,21 @@ class MainWindow(QWidget):
 
     def _restore_last_library(self) -> None:
         saved_path = self.settings_repo.get(_SETTINGS_KEY_LIBRARY_PATH)
-        if saved_path and Path(saved_path).is_dir():
+        if not saved_path:
+            return
+        if Path(saved_path).is_dir():
             self._current_library_root_id = self.library_root_repo.get_or_create(saved_path)
             self._rescan_action.setEnabled(True)
             self.refresh_library()
+        else:
+            # Item 16 da Etapa 6: pasta configurada sumiu (pen drive
+            # desconectado, pasta renomeada...) — nunca crasha, só avisa e
+            # deixa a ação "Selecionar pasta" disponível pra escolher de novo.
+            self.status_bar.showMessage(
+                f"A pasta da biblioteca não foi encontrada: {saved_path}. "
+                "Selecione a pasta novamente na barra de ferramentas.",
+                12000,
+            )
 
     def _on_select_library_folder(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Selecionar pasta da biblioteca de músicas")
@@ -596,7 +612,13 @@ class MainWindow(QWidget):
             QMessageBox.information(self, "Soundtrack vazia", "Adicione músicas antes de exportar.")
             return
 
-        dialog = ExportDialog(soundtrack.name, len(items), has_sections=bool(sections), parent=self)
+        initial_conflict_policy = (
+            self._default_conflict_policy_provider() if self._default_conflict_policy_provider else None
+        )
+        dialog = ExportDialog(
+            soundtrack.name, len(items), has_sections=bool(sections),
+            initial_conflict_policy=initial_conflict_policy, parent=self,
+        )
         if dialog.exec() != ExportDialog.DialogCode.Accepted:
             return
 
@@ -651,3 +673,9 @@ class MainWindow(QWidget):
 
     def rescan_library(self) -> None:
         self._on_rescan_library()
+
+    def set_default_conflict_policy_provider(self, provider: Callable[[], str]) -> None:
+        """Usado pelo Studio (item 14 da Etapa 6) pra pré-selecionar o
+        combo "se o arquivo já existir" do diálogo de exportação com a
+        preferência salva em Configurações."""
+        self._default_conflict_policy_provider = provider

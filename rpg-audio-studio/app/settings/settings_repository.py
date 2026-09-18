@@ -21,6 +21,7 @@ KEY_MUSIC_VOLUME = "music_volume"
 KEY_SFX_VOLUME = "sfx_volume"
 KEY_EXPORT_CONFLICT_POLICY = "export_conflict_policy"
 KEY_THEME = "theme"
+KEY_FIRST_RUN_COMPLETED = "first_run_completed"
 
 
 class StudioSettingsRepository:

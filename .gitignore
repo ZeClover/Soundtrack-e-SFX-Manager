@@ -17,11 +17,16 @@ data/
 *.db-shm
 logs/
 
-# Build / empacotamento
+# Build / empacotamento (Etapa 6, item 67) — o .spec oficial (ex.:
+# RPGAudioStudio.spec) fica versionado; só a saída do build e artefatos
+# gerados/derivados ficam de fora.
 build/
 dist/
+release/
 *.spec.bak
 *.egg-info/
+version_info.txt
+rpg-audio-studio/ffmpeg/
 
 # Editor / SO
 .vscode/

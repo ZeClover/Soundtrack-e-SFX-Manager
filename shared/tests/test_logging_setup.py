@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import os
+import time
 from pathlib import Path
 
-from rpg_audio_shared.logging_setup import configure_module_log_stream
+from rpg_audio_shared.logging_setup import _DEFAULT_KEEP_DAYS, configure_module_log_stream
 
 
 def _reset_logger(name: str) -> None:
@@ -60,3 +62,30 @@ def test_messages_still_propagate_to_root_logger(tmp_path: Path):
         assert logging.getLogger("test.module.d").propagate is True
     finally:
         _reset_logger("test.module.d")
+
+
+def test_old_log_files_of_the_same_prefix_are_pruned(tmp_path: Path):
+    """Regressão da Etapa 6 (item 61): sem limpeza, um arquivo novo por dia
+    acumularia pra sempre — arquivos com mais de ``_DEFAULT_KEEP_DAYS`` dias
+    do mesmo prefixo devem ser removidos ao (re)configurar o logging."""
+    old_file = tmp_path / "sfx-2000-01-01.log"
+    old_file.write_text("mensagem antiga", encoding="utf-8")
+    old_timestamp = time.time() - (_DEFAULT_KEEP_DAYS + 1) * 86400
+    os.utime(old_file, (old_timestamp, old_timestamp))
+
+    recent_file = tmp_path / "sfx-2000-01-02.log"
+    recent_file.write_text("mensagem recente", encoding="utf-8")
+
+    other_prefix_old_file = tmp_path / "soundtrack-2000-01-01.log"
+    other_prefix_old_file.write_text("outro módulo", encoding="utf-8")
+    os.utime(other_prefix_old_file, (old_timestamp, old_timestamp))
+
+    _reset_logger("test.module.e")
+    try:
+        configure_module_log_stream("test.module.e", tmp_path, "sfx")
+
+        assert not old_file.exists()
+        assert recent_file.exists()
+        assert other_prefix_old_file.exists()  # não mexe em prefixo de outro módulo
+    finally:
+        _reset_logger("test.module.e")

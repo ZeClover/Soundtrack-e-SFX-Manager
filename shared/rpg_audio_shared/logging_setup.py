@@ -8,16 +8,39 @@ o arquivo de log e a UI mostra uma mensagem amigável com opção de
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date
 from pathlib import Path
 
 from .app_dirs import app_log_dir
+
+# Cada dia já ganha seu próprio arquivo (rotação por data) — o risco de
+# crescimento sem limite não é um arquivo gigante, é acumular um arquivo
+# novo por dia para sempre. Mantemos só os últimos N dias (item 61).
+_DEFAULT_KEEP_DAYS = 14
+
+
+def _prune_old_logs(log_dir: Path, filename_prefix: str, keep_days: int = _DEFAULT_KEEP_DAYS) -> None:
+    """Apaga arquivos ``{filename_prefix}-*.log`` mais antigos que
+    ``keep_days`` dias. Nunca deve impedir o app de abrir: qualquer erro de
+    I/O ao limpar (permissão, disco, etc.) é só ignorado."""
+    cutoff = time.time() - keep_days * 86400
+    try:
+        for path in log_dir.glob(f"{filename_prefix}-*.log"):
+            try:
+                if path.stat().st_mtime < cutoff:
+                    path.unlink()
+            except OSError:
+                continue
+    except OSError:
+        pass
 
 
 def configure_logging(app_slug: str, level: int = logging.INFO) -> Path:
     """Configura logging para console + arquivo diário. Retorna o caminho do arquivo."""
     log_dir = app_log_dir(app_slug)
     log_file = log_dir / f"app-{date.today().isoformat()}.log"
+    _prune_old_logs(log_dir, "app")
 
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
@@ -52,6 +75,7 @@ def configure_module_log_stream(
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
     log_file = log_dir / f"{filename_prefix}-{date.today().isoformat()}.log"
+    _prune_old_logs(log_dir, filename_prefix)
 
     already_routed = any(getattr(handler, "_rpg_audio_route", None) == filename_prefix for handler in logger.handlers)
     if not already_routed:

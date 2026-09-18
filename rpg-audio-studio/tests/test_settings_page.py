@@ -225,3 +225,16 @@ def test_declining_restore_confirmation_does_not_touch_files(qt_core_app, tmp_pa
         assert calls == []  # nunca chegou a tentar restaurar
     finally:
         db.close()
+
+
+def test_about_button_opens_about_dialog(qt_core_app, tmp_path: Path, monkeypatch):
+    page, repo, db = _make_page(tmp_path)
+    try:
+        opened = []
+        monkeypatch.setattr(
+            "app.shell.about_dialog.AboutDialog.exec", lambda self: opened.append(True) or 0
+        )
+        page._on_show_about()
+        assert opened == [True]
+    finally:
+        db.close()

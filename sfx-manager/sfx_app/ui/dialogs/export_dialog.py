@@ -21,7 +21,14 @@ from sfx_app.services.export_service import ExportOptions
 
 
 class ExportDialog(QDialog):
-    def __init__(self, pack_name: str, track_count: int, default_folder: str = "", parent=None):
+    def __init__(
+        self,
+        pack_name: str,
+        track_count: int,
+        default_folder: str = "",
+        initial_conflict_policy: str | None = None,
+        parent=None,
+    ):
         super().__init__(parent)
         self.setWindowTitle(f"Exportar — {pack_name}")
         self.setMinimumWidth(420)
@@ -53,6 +60,12 @@ class ExportDialog(QDialog):
         self.conflict_combo.addItem("Criar nome alternativo", "rename")
         self.conflict_combo.addItem("Sobrescrever", "overwrite")
         self.conflict_combo.addItem("Ignorar", "skip")
+        if initial_conflict_policy is not None:
+            # Pré-seleciona com a preferência salva em Configurações (item
+            # 14 da Etapa 6) — em vez de sempre reabrir em "rename".
+            index = self.conflict_combo.findData(initial_conflict_policy)
+            if index >= 0:
+                self.conflict_combo.setCurrentIndex(index)
         form.addRow("Se o arquivo já existir:", self.conflict_combo)
 
         layout.addLayout(form)

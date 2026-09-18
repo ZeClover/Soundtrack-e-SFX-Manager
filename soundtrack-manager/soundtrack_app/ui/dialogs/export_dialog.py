@@ -29,6 +29,7 @@ class ExportDialog(QDialog):
         track_count: int,
         default_folder: str = "",
         has_sections: bool = False,
+        initial_conflict_policy: str | None = None,
         parent=None,
     ):
         super().__init__(parent)
@@ -75,6 +76,12 @@ class ExportDialog(QDialog):
         self.conflict_combo.addItem("Criar nome alternativo", "rename")
         self.conflict_combo.addItem("Sobrescrever", "overwrite")
         self.conflict_combo.addItem("Ignorar", "skip")
+        if initial_conflict_policy is not None:
+            # Pré-seleciona com a preferência salva em Configurações (item
+            # 14 da Etapa 6) — em vez de sempre reabrir em "rename".
+            index = self.conflict_combo.findData(initial_conflict_policy)
+            if index >= 0:
+                self.conflict_combo.setCurrentIndex(index)
         form.addRow("Se o arquivo já existir:", self.conflict_combo)
 
         self.section_flat_radio = QRadioButton("Tudo na mesma pasta")

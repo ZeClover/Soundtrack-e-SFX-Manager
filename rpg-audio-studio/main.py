@@ -11,18 +11,33 @@ módulos em si não se importam uns aos outros.
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 from rpg_audio_shared.logging_setup import configure_logging, configure_module_log_stream
 from rpg_audio_shared.stdio_guard import ensure_stdio
 from rpg_audio_shared.theme import apply_dark_theme
 
 from app.bootstrap import ensure_sibling_modules_importable
-from app.config import ACCENT_COLOR, APP_NAME, APP_SLUG, log_dir
+from app.config import ACCENT_COLOR, APP_NAME, APP_SLUG, bundled_ffmpeg_dir, icon_path, log_dir
 from app.shell.main_window import StudioWindow
 from app.shell.theme_extra import sidebar_stylesheet
+
+
+def ensure_bundled_ffmpeg_on_path() -> None:
+    """Se o build trouxer uma cópia do FFmpeg/FFprobe junto do app (item 5),
+    coloca essa pasta na FRENTE do PATH deste processo — assim qualquer
+    chamada a "ffmpeg" (do Soundtrack Manager, do SFX Manager ou do yt-dlp)
+    encontra a cópia empacotada primeiro, sem precisar mexer no código
+    desses módulos nem no PATH real do Windows. Se não houver cópia
+    empacotada, não faz nada: tudo continua caindo no PATH do sistema como
+    sempre fez."""
+    ffmpeg_dir = bundled_ffmpeg_dir()
+    if ffmpeg_dir.is_dir():
+        os.environ["PATH"] = str(ffmpeg_dir) + os.pathsep + os.environ.get("PATH", "")
 
 
 def build_studio_window(
@@ -53,17 +68,24 @@ def build_studio_window(
     settings_db = StudioDatabase(studio_settings_db_path or studio_database_path())
     settings_repo = StudioSettingsRepository(settings_db)
     window.studio_settings_db = settings_db  # só para fechar limpo no shutdown
+    window.studio_settings_repo = settings_repo  # usado por main() pra checar a primeira execução
 
     home_page = HomePage(soundtrack_db_path=soundtrack_db_path, sfx_db_path=sfx_db_path)
     window.register_page("home", lambda: home_page)
 
     def _music_factory():
         module = create_soundtrack_page(db_path=soundtrack_db_path)
+        module.set_default_conflict_policy_provider(_default_conflict_policy_provider(settings_repo))
         window.set_global_player_bar(PlayerBar(module.player_service))
         return module
 
+    def _sfx_factory():
+        module = create_sfx_page(db_path=sfx_db_path)
+        module.set_default_conflict_policy_provider(_default_conflict_policy_provider(settings_repo))
+        return module
+
     window.register_page("music", _music_factory)
-    window.register_page("sfx", lambda: create_sfx_page(db_path=sfx_db_path))
+    window.register_page("sfx", _sfx_factory)
 
     def _downloader_factory():
         page = DownloaderPage()
@@ -194,6 +216,17 @@ def _wire_downloader_to_library(window: StudioWindow, downloader_page) -> None:
     downloader_page.download_finished.connect(_on_download_finished)
 
 
+def _default_conflict_policy_provider(settings_repo):
+    """Provider passado pra ``MainWindow.set_default_conflict_policy_provider``
+    dos dois módulos — resolve sempre em cima do valor atual do banco (não
+    congela num valor lido só na criação da página), então mudar a
+    preferência em Configurações já vale na próxima vez que o diálogo de
+    exportação for aberto (item 14 da Etapa 6)."""
+    from app.settings.settings_repository import KEY_EXPORT_CONFLICT_POLICY
+
+    return lambda: settings_repo.get(KEY_EXPORT_CONFLICT_POLICY, "rename")
+
+
 def _apply_downloader_preferences(window: StudioWindow, settings_repo, downloader_page) -> None:
     """Pré-preenche a página do Downloader com as preferências salvas em
     Configurações (item 19) — nada aqui duplica a preferência, só lê o que
@@ -227,12 +260,41 @@ def _apply_downloader_preferences(window: StudioWindow, settings_repo, downloade
     downloader_page.subfolder_checkbox.setChecked(bool(settings_repo.get(KEY_CREATE_PLAYLIST_SUBFOLDER, True)))
 
 
+def maybe_show_welcome_dialog(window: StudioWindow, settings_repo) -> None:
+    """Primeira execução (item 15 da Etapa 6): só aparece uma vez, nunca
+    obriga o usuário a preencher nada, e nunca reaparece depois — mesmo se
+    ele pular todas as pastas."""
+    from app.settings.settings_repository import KEY_DEFAULT_DOWNLOADS_FOLDER, KEY_FIRST_RUN_COMPLETED
+
+    if settings_repo.get(KEY_FIRST_RUN_COMPLETED, False):
+        return
+
+    from app.shell.welcome_dialog import WelcomeDialog
+
+    dialog = WelcomeDialog(window)
+    if dialog.exec() == WelcomeDialog.DialogCode.Accepted:
+        music_folder = dialog.music_folder()
+        if music_folder:
+            window.ensure_page_created("music").scan_folder(Path(music_folder))
+
+        sfx_folder = dialog.sfx_folder()
+        if sfx_folder:
+            window.ensure_page_created("sfx").scan_folder(Path(sfx_folder))
+
+        downloads_folder = dialog.downloads_folder()
+        if downloads_folder:
+            settings_repo.set(KEY_DEFAULT_DOWNLOADS_FOLDER, downloads_folder)
+
+    settings_repo.set(KEY_FIRST_RUN_COMPLETED, True)
+
+
 def main() -> int:
     # Precisa rodar antes de qualquer outra coisa: pythonw.exe (sem console)
     # deixa sys.stdout/stderr como None, e bibliotecas como o yt-dlp usadas
     # pelo Downloader quebram com 'NoneType' object has no attribute 'write'
     # se tentarem escrever neles (item 13).
     ensure_stdio()
+    ensure_bundled_ffmpeg_on_path()
 
     configure_logging(APP_SLUG)
     # Log geral (app-*.log) já cobre tudo, mas um arquivo por módulo facilita
@@ -247,8 +309,13 @@ def main() -> int:
     apply_dark_theme(app, ACCENT_COLOR)
     app.setStyleSheet(app.styleSheet() + sidebar_stylesheet(ACCENT_COLOR))
 
+    icon_file = icon_path()
+    if icon_file.is_file():
+        app.setWindowIcon(QIcon(str(icon_file)))
+
     window = build_studio_window()
     window.show()
+    maybe_show_welcome_dialog(window, window.studio_settings_repo)
 
     exit_code = app.exec()
     window.studio_settings_db.close()

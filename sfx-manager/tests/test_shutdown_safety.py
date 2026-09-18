@@ -79,3 +79,35 @@ def test_shutdown_while_sfx_is_playing_does_not_raise(tmp_path: Path, qt_core_ap
     window.player_service.play(tracks[0])
 
     window.shutdown()  # não pode lançar mesmo com efeito "tocando"
+
+
+@pytest.mark.skipif(not FFMPEG_AVAILABLE, reason="ffmpeg não disponível neste ambiente")
+def test_shutdown_while_multiple_sfx_are_playing_simultaneously_does_not_raise(tmp_path: Path, qt_core_app):
+    """Etapa 6 (item 64): "sons simultâneos" ligado é o caso mais exigente
+    de fechar o app — vários QMediaPlayer/QAudioOutput ativos ao mesmo
+    tempo, todos precisando parar sem lançar."""
+    from sfx_app.services.library_scanner import LibraryScanner
+    from sfx_app.ui.main_window import MainWindow
+
+    library = tmp_path / "SFX"
+    (library / "Impactos").mkdir(parents=True)
+    for name in ("chuva", "trovao", "passos"):
+        _make_silent_wav(library / "Impactos" / f"{name}.wav", duration=2.0)
+
+    window = MainWindow(db_path=tmp_path / "test.db")
+
+    scanner = LibraryScanner(window.db, library)
+    results = []
+    scanner.scan_finished.connect(results.append)
+    scanner.run()
+    window._on_scan_finished(results[0])
+
+    tracks = window.library_panel.all_tracks()
+    assert len(tracks) == 3
+
+    window.player_service.set_allow_simultaneous(True)
+    for track in tracks:
+        window.player_service.play(track)
+    assert window.player_service.active_count == 3
+
+    window.shutdown()  # não pode lançar mesmo com 3 efeitos tocando ao mesmo tempo

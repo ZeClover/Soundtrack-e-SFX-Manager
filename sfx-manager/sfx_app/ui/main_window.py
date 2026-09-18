@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -77,6 +78,10 @@ class MainWindow(QWidget):
 
         self._current_library_root_id: int | None = None
         self._current_pack_id: int | None = None
+        # Preenchido pelo Studio (item 14 da Etapa 6) pra pré-selecionar o
+        # comportamento de duplicados salvo em Configurações; no app
+        # standalone fica None e o diálogo usa seu próprio padrão de sempre.
+        self._default_conflict_policy_provider: Callable[[], str] | None = None
         self._scanner: LibraryScanner | None = None
         self._scan_dialog: ScanProgressDialog | None = None
         self._hotkey_shortcuts: dict[str, QShortcut] = {}
@@ -216,10 +221,20 @@ class MainWindow(QWidget):
 
     def _restore_last_library(self) -> None:
         saved_path = self.settings_repo.get(_SETTINGS_KEY_LIBRARY_PATH)
-        if saved_path and Path(saved_path).is_dir():
+        if not saved_path:
+            return
+        if Path(saved_path).is_dir():
             self._current_library_root_id = self.library_root_repo.get_or_create(saved_path)
             self._rescan_action.setEnabled(True)
             self.refresh_library()
+        else:
+            # Item 16 da Etapa 6: pasta configurada sumiu — nunca crasha,
+            # só avisa e deixa a ação "Selecionar pasta" disponível.
+            self.status_bar.showMessage(
+                f"A pasta da biblioteca de SFX não foi encontrada: {saved_path}. "
+                "Selecione a pasta novamente na barra de ferramentas.",
+                12000,
+            )
 
     def _on_select_library_folder(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Selecionar pasta da biblioteca de SFX")
@@ -493,7 +508,12 @@ class MainWindow(QWidget):
             QMessageBox.information(self, "Pack vazio", "Adicione efeitos antes de exportar.")
             return
 
-        dialog = ExportDialog(pack.name, len(items), parent=self)
+        initial_conflict_policy = (
+            self._default_conflict_policy_provider() if self._default_conflict_policy_provider else None
+        )
+        dialog = ExportDialog(
+            pack.name, len(items), initial_conflict_policy=initial_conflict_policy, parent=self,
+        )
         if dialog.exec() != ExportDialog.DialogCode.Accepted:
             return
 
@@ -534,3 +554,16 @@ class MainWindow(QWidget):
 
     def current_library_folder(self) -> str | None:
         return self.settings_repo.get(_SETTINGS_KEY_LIBRARY_PATH)
+
+    def scan_folder(self, folder: Path) -> None:
+        """Escaneia ``folder`` e passa a usá-la como pasta da biblioteca de
+        SFX — usado pela primeira execução do Studio (item 15 da Etapa 6)
+        pra não precisar reabrir um seletor de pasta que o usuário já usou."""
+        self.settings_repo.set(_SETTINGS_KEY_LIBRARY_PATH, str(folder))
+        self._start_scan(Path(folder))
+
+    def set_default_conflict_policy_provider(self, provider: Callable[[], str]) -> None:
+        """Usado pelo Studio (item 14 da Etapa 6) pra pré-selecionar o
+        combo "se o arquivo já existir" do diálogo de exportação com a
+        preferência salva em Configurações."""
+        self._default_conflict_policy_provider = provider

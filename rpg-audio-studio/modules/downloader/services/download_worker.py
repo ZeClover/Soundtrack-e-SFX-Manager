@@ -26,6 +26,7 @@ from modules.downloader.models import (
     DownloadReport,
     ItemStatus,
 )
+from app.config import bundled_ffmpeg_dir
 from modules.downloader.services.download_archive import DownloadArchive
 from modules.downloader.services.ffmpeg_check import ffmpeg_available
 from modules.downloader.services.formatting import format_eta, format_speed
@@ -226,6 +227,12 @@ class DownloadWorker(QThread):
             "outtmpl": outtmpl,
             "retries": 3,
         }
+        # Explícito em vez de confiar só no PATH do processo (que o Studio
+        # já ajusta em main.py): reforça pro yt-dlp especificamente onde
+        # está o FFmpeg empacotado, se houver um (item 5/6 da Etapa 6).
+        ffmpeg_dir = bundled_ffmpeg_dir()
+        if ffmpeg_dir.is_dir():
+            opts["ffmpeg_location"] = str(ffmpeg_dir)
         if self._options.audio_format == AudioFormat.MP3:
             opts["format"] = "bestaudio/best"
             opts["postprocessors"] = [

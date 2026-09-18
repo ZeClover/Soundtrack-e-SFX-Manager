@@ -27,9 +27,15 @@ módulo separado, com seu próprio banco de dados e sua própria lógica, só a
 
 | Módulo | Pasta | Função | Status |
 |---|---|---|---|
-| **RPG Audio Studio** | `rpg-audio-studio/` | Shell principal — Home, Música/Soundtracks, SFX/Packs, Downloader, Histórico, Configurações | **Etapa 5 pronta** |
+| **RPG Audio Studio** | `rpg-audio-studio/` | Shell principal — Home, Música/Soundtracks, SFX/Packs, Downloader, Histórico, Configurações | **v1.0.0 — build e distribuição prontos** |
 | RPG Soundtrack Manager | `soundtrack-manager/` | Módulo de música/soundtracks (embutido no Studio; também roda sozinho) | Etapas 2 e 3 prontas |
 | RPG SFX Manager | `sfx-manager/` | Módulo de efeitos/packs (embutido no Studio; também roda sozinho) | Etapa 4 pronta |
+
+**Para usar o programa pronto:** baixe o `.zip` da versão mais recente
+(veja `rpg-audio-studio/README.md`), extraia e rode
+`RPG Audio Studio.exe` — não precisa instalar Python nem nada além disso.
+As instruções abaixo são para quem for **desenvolver/rodar a partir do
+código-fonte**.
 
 `soundtrack-manager/` e `sfx-manager/` não são mais "produtos finais"
 separados — são os módulos que o RPG Audio Studio embute. Eles continuam
@@ -91,8 +97,10 @@ cd rpg-audio-studio && python main.py
 ```
 
 Veja [`rpg-audio-studio/README.md`](rpg-audio-studio/README.md) para
-detalhes completos (teste no Windows, testes automatizados, estrutura,
-dados, recursos).
+detalhes completos (instalação da versão portátil, build do `.exe`,
+testes automatizados, estrutura, dados/backup, recursos) e
+[`rpg-audio-studio/GUIA-RAPIDO.md`](rpg-audio-studio/GUIA-RAPIDO.md) para
+um passo a passo simples de como usar o programa.
 
 ### Rodar um módulo isolado (desenvolvimento)
 
@@ -120,4 +128,9 @@ Usam o mesmo banco de dados que usariam dentro do Studio.
    os módulos Música e SFX, RPG Audio Downloader novo com yt-dlp + FFmpeg,
    integração Downloader → Biblioteca, configurações unificadas, backup/
    restauração, histórico consolidado)
-6. Build do executável Windows único (PyInstaller)
+6. ~~Build final + polimento + distribuição Windows~~ ✅ (executável único
+   via PyInstaller, FFmpeg/yt-dlp funcionando empacotados, ícone e
+   metadados do `.exe`, primeira execução opcional, mensagens de erro
+   amigáveis, logs com rotação, `BUILD_WINDOWS.bat` reproduzível, release
+   em `.zip` + checksum SHA256, README/guia rápido/licenças finais — ver
+   `rpg-audio-studio/README.md` para o relatório completo)

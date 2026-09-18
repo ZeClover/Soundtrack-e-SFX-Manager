@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from rpg_audio_shared.app_dirs import app_cache_dir, app_data_dir, app_log_dir
+from rpg_audio_shared.runtime import frozen_base_dir
 
 APP_SLUG = "rpg-audio-studio"
 APP_NAME = "RPG Audio Studio"
@@ -42,3 +43,41 @@ def log_dir() -> Path:
 
 def cache_dir() -> Path:
     return app_cache_dir(APP_SLUG)
+
+
+# ----------------------------------------------------------------------
+# Recursos do PRÓPRIO APP (ícone, FFmpeg empacotado, assets) — item 8.
+#
+# Nunca confundir com os diretórios acima: aqueles são dados do usuário
+# (sempre em %APPDATA%, frozen ou não); estes são arquivos que vêm junto
+# com o programa, e mudam de lugar dependendo se está rodando do
+# código-fonte (desenvolvimento) ou de dentro do executável empacotado.
+# ----------------------------------------------------------------------
+
+_DEV_APP_ROOT = Path(__file__).resolve().parent.parent  # rpg-audio-studio/
+
+
+def app_base_dir() -> Path:
+    """Raiz para resolver recursos empacotados com o app. Em modo frozen,
+    é a pasta do executável (ou a pasta temporária extraída, no one-file);
+    em desenvolvimento, é a raiz do próprio ``rpg-audio-studio/``."""
+    return frozen_base_dir() or _DEV_APP_ROOT
+
+
+def resource_path(*parts: str) -> Path:
+    """Resolve o caminho de um recurso empacotado, ex.:
+    ``resource_path("assets", "icon.ico")`` ou
+    ``resource_path("ffmpeg", "ffmpeg.exe")``."""
+    return app_base_dir().joinpath(*parts)
+
+
+def bundled_ffmpeg_dir() -> Path:
+    """Pasta onde uma cópia do FFmpeg/FFprobe pode vir empacotada junto do
+    Studio (ver item 5 da Etapa 6 e ``BUILD_WINDOWS.bat``). Só existe de
+    fato se alguém tiver colocado os binários lá antes do build — quando
+    não existe, tudo cai de volta pro PATH do sistema normalmente."""
+    return resource_path("ffmpeg")
+
+
+def icon_path() -> Path:
+    return resource_path("assets", "icon.ico")

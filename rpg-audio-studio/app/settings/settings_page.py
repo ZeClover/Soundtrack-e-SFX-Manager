@@ -10,6 +10,7 @@ duplicar a mesma configuração em três lugares diferentes.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from pathlib import Path
 
@@ -30,6 +31,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from rpg_audio_shared.error_dialog import show_friendly_error
+
 from app.backup.backup_service import create_backup, restore_backup
 from app.settings.settings_repository import (
     KEY_CREATE_PLAYLIST_SUBFOLDER,
@@ -41,6 +44,8 @@ from app.settings.settings_repository import (
     KEY_PREFERRED_FORMAT,
     StudioSettingsRepository,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SettingsPage(QWidget):
@@ -114,7 +119,16 @@ class SettingsPage(QWidget):
         theme_label = QLabel("Escuro (padrão da suíte)")
         theme_label.setStyleSheet("color: #9aa0ad;")
         form.addRow("Tema:", theme_label)
+
+        about_button = QPushButton("Sobre o RPG Audio Studio")
+        about_button.clicked.connect(self._on_show_about)
+        form.addRow("", about_button)
         return group
+
+    def _on_show_about(self) -> None:
+        from app.shell.about_dialog import AboutDialog
+
+        AboutDialog(self).exec()
 
     def _build_music_group(self) -> QGroupBox:
         group = QGroupBox("Músicas")
@@ -317,7 +331,14 @@ class SettingsPage(QWidget):
         try:
             result = create_backup(Path(path_str))
         except Exception as exc:  # noqa: BLE001 - nunca pode derrubar a UI
-            QMessageBox.warning(self, "Falha ao criar backup", f"Não foi possível criar o backup: {exc}")
+            show_friendly_error(
+                self,
+                "Falha ao criar backup",
+                "Não foi possível criar o backup. Verifique se a pasta de destino "
+                "tem espaço e permissão de escrita, e tente novamente.",
+                exc=exc,
+                logger=logger,
+            )
             return
 
         message = f"Backup criado em:\n{path_str}\n\nIncluído: {', '.join(result.included) or 'nada (nenhum dado encontrado)'}"
@@ -346,7 +367,14 @@ class SettingsPage(QWidget):
         try:
             result = restore_backup(Path(path_str))
         except Exception as exc:  # noqa: BLE001 - nunca pode derrubar a UI
-            QMessageBox.warning(self, "Falha ao restaurar backup", f"Não foi possível restaurar o backup: {exc}")
+            show_friendly_error(
+                self,
+                "Falha ao restaurar backup",
+                "Não foi possível restaurar o backup. Confirme que o arquivo escolhido "
+                "é um backup válido do RPG Audio Studio e tente novamente.",
+                exc=exc,
+                logger=logger,
+            )
             return
 
         QMessageBox.information(

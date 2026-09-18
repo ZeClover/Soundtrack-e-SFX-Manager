@@ -12,9 +12,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QHBoxLayout, QMainWindow, QStackedWidget, QStatusBar, QVBoxLayout, QWidget
 
-from app.config import APP_NAME
+from app.config import APP_NAME, icon_path
 from app.shell.sidebar import Sidebar
 
 PageFactory = Callable[[], QWidget]
@@ -25,6 +26,13 @@ class StudioWindow(QMainWindow):
         super().__init__(parent)
         self.setWindowTitle(APP_NAME)
         self.resize(1400, 860)
+
+        # Ícone da janela (item 10 da Etapa 6) — usado mesmo fora do fluxo
+        # normal de main() (ex.: testes que criam StudioWindow diretamente),
+        # então fica aqui e não só em QApplication.setWindowIcon.
+        icon_file = icon_path()
+        if icon_file.is_file():
+            self.setWindowIcon(QIcon(str(icon_file)))
 
         self._page_factories: dict[str, PageFactory] = {}
         self._page_instances: dict[str, QWidget] = {}
