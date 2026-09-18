@@ -1,9 +1,13 @@
-"""Regressão: o primeiro build Windows saiu sem FFmpeg porque
-``ffmpeg.exe``/``ffprobe.exe`` nunca existiam antes do PyInstaller rodar
-e o BUILD_WINDOWS.bat antigo só avisava e seguia em frente. Estes testes
-cobrem a lógica pura de ``scripts/fetch_ffmpeg.py`` (checksum, extração,
-localização dos binários, idempotência, falhas) sem depender de rede —
-o download de verdade só é possível numa máquina Windows real.
+"""Regressões: o primeiro build Windows saiu sem FFmpeg porque
+``ffmpeg.exe``/``ffprobe.exe`` nunca existiam antes do PyInstaller rodar,
+e o BUILD_WINDOWS.bat antigo só avisava e seguia em frente. Depois, a
+fonte original (gyan.dev) passou a falhar com um certificado TLS
+expirado, então a fonte foi trocada para os releases do
+BtbN/FFmpeg-Builds no GitHub. Estes testes cobrem a lógica pura de
+``scripts/fetch_ffmpeg.py`` (checksum — inclusive escolher a linha certa
+num arquivo com dezenas de assets —, extração, localização dos binários,
+idempotência, falhas) sem depender de rede — o download de verdade só é
+possível numa máquina Windows real.
 
 Importado via inserção explícita de ``scripts/`` no ``sys.path`` e um
 ``import fetch_ffmpeg`` (nome próprio, não genérico) em vez de
@@ -15,9 +19,9 @@ monorepo roda no mesmo processo."""
 
 from __future__ import annotations
 
-import hashlib
 import sys
 import zipfile
+from hashlib import sha256
 from pathlib import Path
 
 import pytest
@@ -35,9 +39,13 @@ def _make_zip(path: Path, entries: dict[str, bytes]) -> None:
             zf.writestr(name, content)
 
 
-def _sha256_file(path: Path, dest: Path, label: str) -> None:
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    dest.write_text(f"{digest} *{label}\n", encoding="utf-8")
+def _checksums_line(path: Path, filename: str) -> str:
+    digest = sha256(path.read_bytes()).hexdigest()
+    return f"{digest}  {filename}\n"
+
+
+def _write_combined_checksums(dest: Path, *lines: str) -> None:
+    dest.write_text("".join(lines), encoding="utf-8")
 
 
 @pytest.fixture
@@ -47,45 +55,72 @@ def isolated_ffmpeg_dir(tmp_path, monkeypatch):
     return dest
 
 
-def test_verify_checksum_accepts_matching_hash(tmp_path):
-    zip_path = tmp_path / "a.zip"
-    zip_path.write_bytes(b"conteudo de teste")
-    checksum_path = tmp_path / "a.zip.sha256"
-    _sha256_file(zip_path, checksum_path, "a.zip")
+def test_find_checksum_for_asset_picks_the_matching_line_among_many():
+    """checksums.sha256 do BtbN cobre ~50 assets (Windows/Linux,
+    x86_64/arm64, GPL/LGPL, estático/shared) — a busca precisa achar a
+    linha do nosso arquivo específico, não a primeira que aparecer."""
+    content = (
+        "aaaa000000000000000000000000000000000000000000000000000000000001  ffmpeg-master-latest-linux64-gpl.tar.xz\n"
+        "aaaa000000000000000000000000000000000000000000000000000000000002  ffmpeg-master-latest-win64-lgpl.zip\n"
+        "aaaa000000000000000000000000000000000000000000000000000000000003  ffmpeg-master-latest-win64-gpl.zip\n"
+        "aaaa000000000000000000000000000000000000000000000000000000000004  ffmpeg-master-latest-winarm64-gpl.zip\n"
+    )
 
-    ff._verify_checksum(zip_path, checksum_path)  # não deve lançar
+    found = ff._find_checksum_for_asset(content, "ffmpeg-master-latest-win64-gpl.zip")
+
+    assert found == "aaaa000000000000000000000000000000000000000000000000000000000003"
+
+
+def test_find_checksum_for_asset_raises_clearly_when_filename_absent():
+    content = "aaaa000000000000000000000000000000000000000000000000000000000001  outro-arquivo.zip\n"
+
+    with pytest.raises(RuntimeError, match="ffmpeg-master-latest-win64-gpl.zip"):
+        ff._find_checksum_for_asset(content, "ffmpeg-master-latest-win64-gpl.zip")
+
+
+def test_verify_checksum_accepts_matching_hash(tmp_path):
+    zip_path = tmp_path / ff.ASSET_FILENAME
+    zip_path.write_bytes(b"conteudo de teste")
+    checksums_path = tmp_path / "checksums.sha256"
+    _write_combined_checksums(
+        checksums_path,
+        "aaaa000000000000000000000000000000000000000000000000000000000abc  outro-asset.zip\n",
+        _checksums_line(zip_path, ff.ASSET_FILENAME),
+    )
+
+    ff._verify_checksum(zip_path, checksums_path, ff.ASSET_FILENAME)  # não deve lançar
 
 
 def test_verify_checksum_rejects_mismatched_hash(tmp_path):
-    zip_path = tmp_path / "a.zip"
+    zip_path = tmp_path / ff.ASSET_FILENAME
     zip_path.write_bytes(b"conteudo de teste")
-    checksum_path = tmp_path / "a.zip.sha256"
-    checksum_path.write_text("0" * 64 + " *a.zip\n", encoding="utf-8")
+    checksums_path = tmp_path / "checksums.sha256"
+    _write_combined_checksums(checksums_path, "0" * 64 + f"  {ff.ASSET_FILENAME}\n")
 
     with pytest.raises(RuntimeError, match="Checksum SHA256"):
-        ff._verify_checksum(zip_path, checksum_path)
+        ff._verify_checksum(zip_path, checksums_path, ff.ASSET_FILENAME)
 
 
-def test_verify_checksum_rejects_file_without_a_valid_hash(tmp_path):
-    zip_path = tmp_path / "a.zip"
+def test_verify_checksum_rejects_file_without_a_matching_entry(tmp_path):
+    zip_path = tmp_path / ff.ASSET_FILENAME
     zip_path.write_bytes(b"conteudo de teste")
-    checksum_path = tmp_path / "a.zip.sha256"
-    checksum_path.write_text("nao e um hash valido", encoding="utf-8")
+    checksums_path = tmp_path / "checksums.sha256"
+    checksums_path.write_text("isto nao e um arquivo de checksums valido", encoding="utf-8")
 
-    with pytest.raises(RuntimeError, match="hash SHA256"):
-        ff._verify_checksum(zip_path, checksum_path)
+    with pytest.raises(RuntimeError, match="Não encontrei o checksum"):
+        ff._verify_checksum(zip_path, checksums_path, ff.ASSET_FILENAME)
 
 
 def test_extract_binaries_finds_them_inside_a_nested_bin_folder(tmp_path):
-    """A build real do gyan.dev vem com os binários dentro de uma
-    subpasta versionada, ex.: ffmpeg-7.1-essentials_build/bin/ — a busca
+    """A build real do BtbN vem com os binários dentro de uma subpasta
+    versionada, ex.: ffmpeg-master-latest-win64-gpl/bin/ — a busca
     precisa ser recursiva, não assumir um caminho fixo."""
     zip_path = tmp_path / "ffmpeg.zip"
     _make_zip(zip_path, {
-        "ffmpeg-7.1-essentials_build/bin/ffmpeg.exe": b"fake ffmpeg",
-        "ffmpeg-7.1-essentials_build/bin/ffprobe.exe": b"fake ffprobe",
-        "ffmpeg-7.1-essentials_build/bin/ffplay.exe": b"fake ffplay (deve ser ignorado)",
-        "ffmpeg-7.1-essentials_build/LICENSE.txt": b"GPLv3",
+        "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe": b"fake ffmpeg",
+        "ffmpeg-master-latest-win64-gpl/bin/ffprobe.exe": b"fake ffprobe",
+        "ffmpeg-master-latest-win64-gpl/bin/ffplay.exe": b"fake ffplay (deve ser ignorado)",
+        "ffmpeg-master-latest-win64-gpl/LICENSE.txt": b"GPLv3",
     })
 
     extract_dir = tmp_path / "extracted"
@@ -133,18 +168,23 @@ def test_prepare_ffmpeg_skips_download_when_already_valid(isolated_ffmpeg_dir, m
 
 def test_prepare_ffmpeg_downloads_verifies_and_copies_binaries(isolated_ffmpeg_dir, monkeypatch, tmp_path):
     """Fluxo feliz completo, sem rede: ``_download`` é trocado por uma
-    cópia de arquivos locais, o resto (checksum, extração, cópia,
-    validação final) roda de verdade."""
+    cópia de arquivos locais, o resto (checksum contra um arquivo
+    combinado com vários assets, extração, cópia, validação final) roda
+    de verdade."""
     fixture_zip = tmp_path / "fixture.zip"
     _make_zip(fixture_zip, {
-        "ffmpeg-x-essentials_build/bin/ffmpeg.exe": b"fake ffmpeg content",
-        "ffmpeg-x-essentials_build/bin/ffprobe.exe": b"fake ffprobe content",
+        "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe": b"fake ffmpeg content",
+        "ffmpeg-master-latest-win64-gpl/bin/ffprobe.exe": b"fake ffprobe content",
     })
-    fixture_checksum = tmp_path / "fixture.zip.sha256"
-    _sha256_file(fixture_zip, fixture_checksum, "ffmpeg-release-essentials.zip")
+    fixture_checksums = tmp_path / "checksums.sha256"
+    _write_combined_checksums(
+        fixture_checksums,
+        "bbbb000000000000000000000000000000000000000000000000000000000001  ffmpeg-master-latest-linux64-gpl.tar.xz\n",
+        _checksums_line(fixture_zip, ff.ASSET_FILENAME),
+    )
 
     def _fake_download(url, destination):
-        source = fixture_zip if url == ff.DOWNLOAD_URL else fixture_checksum
+        source = fixture_zip if url == ff.DOWNLOAD_URL else fixture_checksums
         destination.write_bytes(source.read_bytes())
 
     monkeypatch.setattr(ff, "_download", _fake_download)
@@ -162,11 +202,11 @@ def test_prepare_ffmpeg_raises_clearly_on_checksum_mismatch(isolated_ffmpeg_dir,
         "bin/ffmpeg.exe": b"fake ffmpeg",
         "bin/ffprobe.exe": b"fake ffprobe",
     })
-    fixture_checksum = tmp_path / "fixture.zip.sha256"
-    fixture_checksum.write_text("0" * 64 + " *ffmpeg-release-essentials.zip\n", encoding="utf-8")
+    fixture_checksums = tmp_path / "checksums.sha256"
+    _write_combined_checksums(fixture_checksums, "0" * 64 + f"  {ff.ASSET_FILENAME}\n")
 
     def _fake_download(url, destination):
-        source = fixture_zip if url == ff.DOWNLOAD_URL else fixture_checksum
+        source = fixture_zip if url == ff.DOWNLOAD_URL else fixture_checksums
         destination.write_bytes(source.read_bytes())
 
     monkeypatch.setattr(ff, "_download", _fake_download)
@@ -176,3 +216,20 @@ def test_prepare_ffmpeg_raises_clearly_on_checksum_mismatch(isolated_ffmpeg_dir,
 
     # Nunca deve ter copiado nada pra pasta final com um download suspeito
     assert not (isolated_ffmpeg_dir / "ffmpeg.exe").exists()
+
+
+def test_download_never_disables_tls_verification():
+    """Regressão específica do pedido: TLS/SSL nunca pode ser desligado
+    aqui — nem um ssl.SSLContext alternativo, nem
+    ssl._create_unverified_context, nem um parâmetro "verify=False" (que
+    nem existe em urllib, mas garantindo que ninguém troque a
+    implementação por requests com isso amanhã). Verifica o CÓDIGO da
+    função, não o texto do docstring (que legitimamente fala sobre
+    TLS/SSL para explicar essa garantia)."""
+    import inspect
+
+    source = inspect.getsource(ff._download)
+    body = source.split('"""', 2)[-1] if '"""' in source else source
+
+    for forbidden in ("_create_unverified_context", "CERT_NONE", "verify=False", "check_hostname"):
+        assert forbidden not in body, f"'{forbidden}' encontrado no código de _download"

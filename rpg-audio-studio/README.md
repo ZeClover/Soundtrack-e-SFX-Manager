@@ -217,17 +217,20 @@ O script:
 4. Gera o ícone (se ainda não existir) e o `version_info.txt` (metadados
    do `.exe`, a partir de `app/version.py`).
 5. Prepara o FFmpeg/FFprobe empacotados (`scripts/fetch_ffmpeg.py`) —
-   **obrigatório**, não opcional: baixa a build "release essentials" do
-   FFmpeg para Windows de <https://www.gyan.dev/ffmpeg/builds/> (fonte
+   **obrigatório**, não opcional: baixa o asset
+   `ffmpeg-master-latest-win64-gpl.zip` (build estática) do release
+   "latest" de <https://github.com/BtbN/FFmpeg-Builds/releases> (fonte
    oficialmente recomendada pelo próprio ffmpeg.org), confere o checksum
-   SHA256, extrai `ffmpeg.exe`/`ffprobe.exe` para
-   `rpg-audio-studio\ffmpeg\` e valida cada um rodando `-version`. Se algo
-   falhar (rede, checksum, binário inválido), **o build inteiro é
-   cancelado** em vez de gerar uma distribuição sem suporte a MP3 — veja
-   `THIRD_PARTY_LICENSES.md` para a licença dessa build (GPLv3). É
-   idempotente: se `ffmpeg\` já tiver binários válidos (de um build
-   anterior, ou colocados manualmente — por exemplo, pra usar uma build
-   LGPL em vez desta GPL), não baixa de novo.
+   SHA256 contra `checksums.sha256` do mesmo release, extrai
+   `ffmpeg.exe`/`ffprobe.exe` para `rpg-audio-studio\ffmpeg\` e valida
+   cada um rodando `-version`. A verificação de certificado TLS/SSL do
+   download nunca é desligada. Se algo falhar (rede, TLS, checksum,
+   binário inválido), **o build inteiro é cancelado** em vez de gerar uma
+   distribuição sem suporte a MP3 — veja `THIRD_PARTY_LICENSES.md` para a
+   licença dessa build (GPL). É idempotente: se `ffmpeg\` já tiver
+   binários válidos (de um build anterior, ou colocados manualmente —
+   por exemplo, pra usar uma build LGPL em vez desta GPL), não baixa de
+   novo.
 6. Empacota com PyInstaller usando `RPGAudioStudio.spec` (que inclui
    `ffmpeg\ffmpeg.exe`/`ffprobe.exe` na distribuição, dentro de uma pasta
    `ffmpeg\` ao lado do `.exe`).

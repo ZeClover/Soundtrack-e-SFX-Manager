@@ -28,23 +28,34 @@ sistema.
 
 **Origem da cópia empacotada nos releases oficiais do Windows:**
 `BUILD_WINDOWS.bat` baixa automaticamente, via `scripts/fetch_ffmpeg.py`,
-a build **"release essentials"** do FFmpeg para Windows mantida por Gyan
-Doshi:
+um release do projeto **BtbN/FFmpeg-Builds** no GitHub:
 
-- URL: <https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip>
+- Release: <https://github.com/BtbN/FFmpeg-Builds/releases/tag/latest> —
+  a tag "latest" é mantida pelo próprio BtbN como um ponteiro estável e
+  sempre atualizado pro build mais recente (não uma URL de scraping: é um
+  asset de release do GitHub com nome e caminho fixos).
+- Asset: **`ffmpeg-master-latest-win64-gpl.zip`** — variante **estática**
+  (não "shared", pra não precisar distribuir DLLs extras do FFmpeg junto
+  do `.exe`) para Windows x86_64.
 - Esta é uma das duas fontes de build para Windows **oficialmente
   recomendadas na própria página de download do FFmpeg**
   (<https://www.ffmpeg.org/download.html#build-windows>, junto com o
-  BtbN).
-- **Licença: GPLv3.** O próprio gyan.dev declara que "all builds are
-  64-bit, static and licensed as GPLv3", e o zip traz um `LICENSE.txt`
-  (copiado do repositório do FFmpeg) — esse arquivo é preservado junto do
-  download, e uma cópia dos termos completos está disponível em
-  <https://www.ffmpeg.org/legal.html>.
+  gyan.dev — usado antes, mas trocado por este porque o certificado TLS
+  do gyan.dev expirou; ver `git log` deste arquivo para o histórico).
+- **Licença: GPL.** A variante "gpl" do BtbN "inclui todas as
+  dependências, mesmo as que exigem GPL completo em vez de só LGPL" (nas
+  palavras do próprio projeto) — o zip baixado traz um `LICENSE`/`readme`
+  próprio com a versão exata (GPLv2-or-later ou GPLv3, dependendo dos
+  componentes habilitados); confira esse arquivo dentro do zip pra saber
+  precisamente qual. O repositório `BtbN/FFmpeg-Builds` em si (os scripts
+  de build, não o binário compilado) é licenciado como MIT. Texto
+  completo das licenças do FFmpeg: <https://www.ffmpeg.org/legal.html>.
 - `fetch_ffmpeg.py` confere o checksum SHA256 do download contra
-  `ffmpeg-release-essentials.zip.sha256` (publicado pelo mesmo gyan.dev)
-  antes de extrair e usar os binários — download corrompido ou adulterado
-  faz o script (e o build inteiro) falhar, em vez de seguir em frente.
+  `checksums.sha256` (publicado no mesmo release, cobrindo todos os
+  assets — o script localiza a linha específica do nosso arquivo) antes
+  de extrair e usar os binários — download corrompido ou adulterado faz o
+  script (e o build inteiro) falhar, em vez de seguir em frente. A
+  verificação de certificado TLS/SSL do download nunca é desligada.
 
 Se você preferir usar uma build LGPL (para evitar as obrigações do GPL
 numa redistribuição fechada) ou qualquer outra fonte, basta colocar

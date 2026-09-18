@@ -108,14 +108,16 @@ rem ------------------------------------------------------------------
 rem 4) FFmpeg/FFprobe empacotados: OBRIGATORIO num release oficial - sem
 rem    isso o Downloader e a exportacao em MP3 ficam sem funcionar em
 rem    quem nao ja tiver FFmpeg no PATH (foi exatamente isso que saiu
-rem    errado no primeiro build). scripts\fetch_ffmpeg.py baixa a build
-rem    "release essentials" do FFmpeg pra Windows (gyan.dev - uma das
-rem    fontes recomendadas na propria pagina oficial de download do
-rem    FFmpeg), confere o checksum SHA256, e valida cada binario rodando
-rem    "-version" - se qualquer passo falhar, o build para aqui, em vez
-rem    de gerar silenciosamente uma distribuicao sem suporte a MP3.
-rem    E idempotente: se ffmpeg\ja tiver binarios validos (colocados a
-rem    mao ou de um build anterior), pula o download.
+rem    errado no primeiro build). scripts\fetch_ffmpeg.py baixa o build
+rem    estatico win64-gpl do release "latest" do BtbN/FFmpeg-Builds no
+rem    GitHub (uma das fontes recomendadas na propria pagina oficial de
+rem    download do FFmpeg - trocado do gyan.dev original porque o
+rem    certificado TLS dele expirou; a verificacao TLS em si nunca foi
+rem    desligada), confere o checksum SHA256, e valida cada binario
+rem    rodando "-version" - se qualquer passo falhar, o build para aqui,
+rem    em vez de gerar silenciosamente uma distribuicao sem suporte a
+rem    MP3. E idempotente: se ffmpeg\ja tiver binarios validos (colocados
+rem    a mao ou de um build anterior), pula o download.
 rem ------------------------------------------------------------------
 echo.
 echo ============================================================
