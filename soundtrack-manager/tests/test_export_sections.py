@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.models import SoundtrackSection, Track
-from app.services.export_service import ExportOptions, ExportService
+from soundtrack_app.models import SoundtrackSection, Track
+from soundtrack_app.services.export_service import ExportOptions, ExportService
 from tests.test_export_service import _item, _make_track
 
 

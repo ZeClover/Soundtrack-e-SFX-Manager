@@ -8,8 +8,8 @@ lançava TypeError até o método ser sobrescrito explicitamente.
 
 from __future__ import annotations
 
-from app.models import SfxTrack
-from app.ui.widgets.sfx_models import SfxCardModel, SfxTableModel, TrackObjectRole
+from sfx_app.models import SfxTrack
+from sfx_app.ui.widgets.sfx_models import SfxCardModel, SfxTableModel, TrackObjectRole
 
 
 def _track(id_: int, title: str, favorite: bool = False) -> SfxTrack:

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from app.models import SoundtrackItem, Track
-from app.services.export_service import ExportOptions, ExportService
+from soundtrack_app.models import SoundtrackItem, Track
+from soundtrack_app.services.export_service import ExportOptions, ExportService
 
 FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
 
@@ -137,7 +137,7 @@ def test_export_gives_friendly_error_when_ffmpeg_missing(tmp_path: Path, monkeyp
     def fake_run(*args, **kwargs):
         raise FileNotFoundError("ffmpeg nao encontrado no PATH")
 
-    monkeypatch.setattr("app.services.export_service.subprocess.run", fake_run)
+    monkeypatch.setattr("soundtrack_app.services.export_service.subprocess.run", fake_run)
 
     report = ExportService().export_soundtrack(
         "Teste", [_item(track, 1)],

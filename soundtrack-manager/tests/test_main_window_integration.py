@@ -31,7 +31,7 @@ def _make_silent_mp3(path: Path, duration: float = 1.0) -> None:
 
 @pytest.fixture
 def main_window(tmp_path, qt_core_app):
-    from app.ui.main_window import MainWindow
+    from soundtrack_app.ui.main_window import MainWindow
 
     # Banco isolado por teste (evita depender de %APPDATA%, que só existe no Windows).
     window = MainWindow(db_path=tmp_path / "test_soundtrack_manager.db")
@@ -85,7 +85,7 @@ def test_full_flow_scan_browse_favorite_tag_soundtrack_export(main_window, tmp_p
 
     # 6. Duplicata pede confirmação: sem confirmar (mock do QMessageBox = No), não duplica
     from PySide6.QtWidgets import QMessageBox
-    import app.ui.main_window as main_window_module
+    import soundtrack_app.ui.main_window as main_window_module
 
     original_question = QMessageBox.question
     main_window_module.QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.StandardButton.No)
@@ -100,7 +100,7 @@ def test_full_flow_scan_browse_favorite_tag_soundtrack_export(main_window, tmp_p
     # 7. Exportar
     export_dir = tmp_path / "export_dest"
     export_dir.mkdir()
-    from app.services.export_service import ExportOptions
+    from soundtrack_app.services.export_service import ExportOptions
 
     report = main_window.export_service.export_soundtrack(
         soundtrack.name, items_after, ExportOptions(destination_folder=export_dir)
@@ -117,7 +117,7 @@ def test_full_flow_scan_browse_favorite_tag_soundtrack_export(main_window, tmp_p
 @pytest.mark.skipif(not FFMPEG_AVAILABLE, reason="ffmpeg não disponível neste ambiente")
 def test_close_and_reopen_preserves_data(tmp_path: Path, qt_core_app):
     """Item 29: fechar e reabrir o programa preserva biblioteca, favoritos, tags e soundtracks."""
-    from app.ui.main_window import MainWindow
+    from soundtrack_app.ui.main_window import MainWindow
 
     library = tmp_path / "Musicas"
     library.mkdir()
@@ -166,7 +166,7 @@ def test_close_and_reopen_preserves_data(tmp_path: Path, qt_core_app):
 
 def _run_scan_synchronously(main_window, folder: Path) -> None:
     """Executa o LibraryScanner de forma síncrona (sem QThread) apenas para o teste."""
-    from app.services.library_scanner import LibraryScanner
+    from soundtrack_app.services.library_scanner import LibraryScanner
 
     scanner = LibraryScanner(main_window.db, folder)
     results = []

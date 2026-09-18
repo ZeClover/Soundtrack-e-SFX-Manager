@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from app.models import Track
-from app.ui.dialogs.history_dialog import HistoryDialog
+from soundtrack_app.models import Track
+from soundtrack_app.ui.dialogs.history_dialog import HistoryDialog
 
 
 def _track(id_: int, title: str) -> Track:

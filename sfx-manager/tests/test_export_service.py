@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from app.models import SfxPackItem, SfxTrack
-from app.services.export_service import ExportOptions, ExportService
+from sfx_app.models import SfxPackItem, SfxTrack
+from sfx_app.services.export_service import ExportOptions, ExportService
 
 FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
 

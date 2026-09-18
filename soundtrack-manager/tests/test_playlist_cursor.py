@@ -1,5 +1,5 @@
-from app.models import Track
-from app.services.playlist_cursor import PlaylistCursor
+from soundtrack_app.models import Track
+from soundtrack_app.services.playlist_cursor import PlaylistCursor
 
 
 def _track(id_: int, title: str) -> Track:

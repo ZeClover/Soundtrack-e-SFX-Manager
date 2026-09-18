@@ -1,4 +1,4 @@
-from app.repositories import TrackFilter
+from soundtrack_app.repositories import TrackFilter
 
 
 def test_upsert_creates_new_track(track_repo, sample_track_id):

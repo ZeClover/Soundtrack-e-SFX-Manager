@@ -7,8 +7,8 @@ QListWidget.clear() já ter destruído seu objeto C++ subjacente.
 
 from __future__ import annotations
 
-from app.models import Category, Tag
-from app.ui.widgets.sfx_filters_panel import SfxFiltersPanel
+from sfx_app.models import Category, Tag
+from sfx_app.ui.widgets.sfx_filters_panel import SfxFiltersPanel
 
 
 def test_set_categories_can_be_called_multiple_times(qt_core_app):

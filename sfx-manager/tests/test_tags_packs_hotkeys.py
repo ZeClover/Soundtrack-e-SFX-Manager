@@ -1,4 +1,4 @@
-from app.repositories import SfxTrackFilter
+from sfx_app.repositories import SfxTrackFilter
 
 
 def test_set_tags_for_track_replaces_and_creates(tag_repo, track_repo, sample_track_id):

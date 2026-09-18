@@ -1,69 +1,84 @@
 # RPG Audio Toolkit
 
-Suíte de três aplicativos desktop independentes (Windows, Python + PySide6)
-para organizar músicas e efeitos sonoros de campanhas de RPG, funcionando
-100% localmente — sem servidor, conta ou assinatura.
+**RPG Audio Studio**: aplicativo desktop único (Windows, Python + PySide6)
+para baixar, organizar e tocar músicas e efeitos sonoros de campanhas de
+RPG — funcionando 100% localmente, sem servidor, conta ou assinatura.
 
 ```text
-Internet / arquivos locais
+YouTube / arquivos locais
     ↓
-RPG Audio Downloader          (planejado — Etapa 5)
+Downloader
     ↓
-Biblioteca geral de músicas
+Biblioteca de músicas
     ↓
-RPG Soundtrack Manager        (Etapas 2 e 3 prontas)
-    ↓
-Soundtrack organizada de uma campanha
+Soundtracks
 
 Biblioteca de efeitos sonoros
     ↓
-RPG SFX Manager                (Etapa 4 pronta)
-    ↓
-Coleções/packs de SFX para campanhas
+Packs de SFX
 ```
 
-## Os três aplicativos
+Tudo dentro da mesma janela — o usuário não abre três programas
+diferentes. Internamente a suíte continua modular: cada parte vive num
+módulo separado, com seu próprio banco de dados e sua própria lógica, só a
+**experiência do usuário** é unificada.
 
-Cada um é um programa independente, com seu próprio executável e propósito
-claro — não é uma suíte com abas.
+## O produto
 
-| App | Pasta | Função | Status |
+| Módulo | Pasta | Função | Status |
 |---|---|---|---|
-| RPG Audio Downloader | `downloader/` | Baixar áudio (yt-dlp + FFmpeg) e organizar em pastas | Planejado |
-| **RPG Soundtrack Manager** | `soundtrack-manager/` | Biblioteca de músicas, player, tags, campanhas, soundtracks com seções, modo triagem, duplicados, exportação | **Etapas 2 e 3 prontas** |
-| **RPG SFX Manager** | `sfx-manager/` | Biblioteca de efeitos sonoros por categoria, reprodução rápida/simultânea, hotkeys, packs de SFX, duplicados, exportação | **Etapa 4 pronta** |
+| **RPG Audio Studio** | `rpg-audio-studio/` | Shell principal — Home, Música/Soundtracks, SFX/Packs, Downloader, Histórico, Configurações | **Etapa 5 pronta** |
+| RPG Soundtrack Manager | `soundtrack-manager/` | Módulo de música/soundtracks (embutido no Studio; também roda sozinho) | Etapas 2 e 3 prontas |
+| RPG SFX Manager | `sfx-manager/` | Módulo de efeitos/packs (embutido no Studio; também roda sozinho) | Etapa 4 pronta |
+
+`soundtrack-manager/` e `sfx-manager/` não são mais "produtos finais"
+separados — são os módulos que o RPG Audio Studio embute. Eles continuam
+podendo rodar sozinhos durante desenvolvimento/depuração (veja abaixo),
+mas o app que o usuário final abre é o **RPG Audio Studio**.
 
 ## Arquitetura adotada
 
 - **Linguagem/UI:** Python 3.11 + PySide6 (Qt), tema escuro próprio (paleta +
   QSS), sem depender de frameworks pesados de UI.
-- **Persistência:** SQLite local por app (um banco por aplicativo, já que
-  cada um tem seu próprio domínio de dados) — sem servidor, sem nuvem própria.
-  Pastas do Google Drive/OneDrive/Dropbox são tratadas como pastas locais
-  normais.
+- **Shell + módulos, não monolito:** o RPG Audio Studio (`rpg-audio-studio/`)
+  é uma janela com navegação lateral que **importa o código-fonte** dos
+  módulos Música e SFX diretamente (pacotes `soundtrack_app`/`sfx_app`) e os
+  embute como páginas — a lógica de negócio desses dois módulos não foi
+  reescrita, só deixou de montar sua própria `QMainWindow` isolada para virar
+  um `QWidget` reaproveitável tanto no app standalone quanto no Studio.
+- **Persistência:** SQLite local por módulo (`soundtrack_manager.db`,
+  `sfx_manager.db`, e um banco bem pequeno próprio do Studio só para
+  preferências que não pertencem a nenhum módulo) — sem servidor, sem nuvem
+  própria, sem centralizar tudo artificialmente num banco só. Pastas do
+  Google Drive/OneDrive/Dropbox são tratadas como pastas locais normais.
 - **Arquivos de áudio:** nunca são copiados, movidos ou renomeados pela
   biblioteca — o banco só guarda metadados e classificações apontando para o
   caminho original. Cópia só acontece explicitamente ao exportar uma
-  soundtrack/pack.
-- **Concorrência:** escaneamento de biblioteca roda em `QThread` própria,
-  comunicando com a UI só por signals/slots (nunca manipula widgets a partir
-  de outra thread), para lidar com bibliotecas de milhares de arquivos sem
-  travar a interface.
-- **Separação em camadas** (dentro de cada app): `ui/` (widgets/diálogos) →
-  `services/` (scanner, player, exportação — lógica de aplicação) →
+  soundtrack/pack, ou ao baixar algo novo pelo Downloader.
+- **Concorrência:** escaneamento de biblioteca e downloads rodam em `QThread`
+  própria, comunicando com a UI só por signals/slots (nunca manipulando
+  widgets a partir de outra thread), para lidar com bibliotecas de milhares
+  de arquivos e playlists grandes sem travar a interface.
+- **Inicialização preguiçosa:** cada página do Studio (Música, SFX,
+  Downloader...) só é criada na primeira vez que o usuário navega até ela, e
+  fica em cache depois — navegar repetidamente entre páginas não recria
+  scanners, players ou conexões de banco duplicadas.
+- **Separação em camadas** (dentro de cada módulo): `ui/` (widgets/diálogos) →
+  `services/` (scanner, player, exportação, download — lógica de aplicação) →
   `repositories/` (SQL) → `database/` (schema/conexão). Modelos são
   `dataclasses` simples em `models/`.
-- **Reuso entre apps:** `shared/rpg_audio_shared` — sanitização de caminhos
-  para Windows, hashing de arquivos (identificação robusta a pequenas
-  reorganizações), leitura de metadados de áudio (mutagen), tema Qt
-  compartilhado e formatação. Instalado em modo editável por cada app; cada
-  app continua rodando e sendo empacotado (`.exe`) de forma independente.
+- **Reuso entre módulos:** `shared/rpg_audio_shared` — sanitização de
+  caminhos para Windows, hashing de arquivos, leitura de metadados de áudio
+  (mutagen), tema Qt compartilhado, formatação, logging e uma proteção
+  contra `sys.stdout`/`stderr` serem `None` (caso de `pythonw.exe` sem
+  console, que já causou um bug real no Downloader antigo).
 
 ## Começando
 
-**No Windows:** entre na pasta do app desejado (`soundtrack-manager` ou
-`sfx-manager`) e dê dois cliques em `ABRIR.bat` — ele instala tudo sozinho
-na primeira vez.
+**No Windows:** entre na pasta `rpg-audio-studio` e dê dois cliques em
+`ABRIR.bat` — ele instala tudo sozinho na primeira vez (as pastas
+`shared/`, `soundtrack-manager/` e `sfx-manager/` precisam estar ao lado
+dela; é o repositório inteiro, não só uma pasta).
 
 **Linha de comando (qualquer sistema):**
 
@@ -71,19 +86,24 @@ na primeira vez.
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
-# Soundtrack Manager
-pip install -r soundtrack-manager/requirements.txt
-cd soundtrack-manager && python main.py
-
-# SFX Manager
-pip install -r sfx-manager/requirements.txt
-cd sfx-manager && python main.py
+pip install -r rpg-audio-studio/requirements.txt
+cd rpg-audio-studio && python main.py
 ```
 
-Veja [`soundtrack-manager/README.md`](soundtrack-manager/README.md) e
-[`sfx-manager/README.md`](sfx-manager/README.md) para detalhes (instruções
-completas de teste no Windows, testes automatizados, estrutura, banco de
-dados, atalhos).
+Veja [`rpg-audio-studio/README.md`](rpg-audio-studio/README.md) para
+detalhes completos (teste no Windows, testes automatizados, estrutura,
+dados, recursos).
+
+### Rodar um módulo isolado (desenvolvimento)
+
+Continua funcionando, se for útil para depurar algo específico:
+
+```bash
+python soundtrack-manager/main.py
+python sfx-manager/main.py
+```
+
+Usam o mesmo banco de dados que usariam dentro do Studio.
 
 ## Roadmap
 
@@ -96,5 +116,8 @@ dados, atalhos).
 4. ~~RPG SFX Manager~~ ✅ (biblioteca com categorias automáticas, cards/lista,
    reprodução simultânea, hotkeys, packs, detector de duplicados, arquivos
    ausentes, exportação)
-5. RPG Audio Downloader
-6. Build dos três executáveis Windows (PyInstaller)
+5. ~~RPG Audio Studio — unificação + Downloader~~ ✅ (shell único reaproveitando
+   os módulos Música e SFX, RPG Audio Downloader novo com yt-dlp + FFmpeg,
+   integração Downloader → Biblioteca, configurações unificadas, backup/
+   restauração, histórico consolidado)
+6. Build do executável Windows único (PyInstaller)

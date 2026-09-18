@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from app.services.library_scanner import LibraryScanner
+from sfx_app.services.library_scanner import LibraryScanner
 
 FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
 
@@ -37,7 +37,7 @@ def test_scanner_detects_new_files_and_assigns_category_from_folder(db, track_re
     assert result.total_files_found == 2
     assert result.new_tracks == 2
 
-    from app.repositories import SfxTrackFilter
+    from sfx_app.repositories import SfxTrackFilter
     tracks = track_repo.find(SfxTrackFilter())
     assert len(tracks) == 2
 
@@ -107,5 +107,5 @@ def test_scanner_fails_gracefully_for_missing_root(db, tmp_path: Path):
 
 
 def _all_filter(missing_only: bool = False):
-    from app.repositories import SfxTrackFilter
+    from sfx_app.repositories import SfxTrackFilter
     return SfxTrackFilter(missing_only=missing_only)

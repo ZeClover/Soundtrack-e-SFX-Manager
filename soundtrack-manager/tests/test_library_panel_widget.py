@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from app.models import Track
-from app.ui.widgets.library_panel import LibraryPanel
+from soundtrack_app.models import Track
+from soundtrack_app.ui.widgets.library_panel import LibraryPanel
 
 
 def _track(id_: int, title: str) -> Track:

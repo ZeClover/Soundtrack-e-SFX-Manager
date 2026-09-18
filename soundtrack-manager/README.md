@@ -6,6 +6,10 @@ player integrado e exportar a soundtrack final para uma pasta própria — sem
 nunca mover, renomear ou apagar os arquivos originais.
 
 Parte da suíte **RPG Audio Toolkit** (veja o [README da raiz](../README.md)).
+Desde a Etapa 5, este módulo é embutido como a página "Música e
+Soundtracks" do **RPG Audio Studio** (`../rpg-audio-studio/`), que é o app
+que o usuário final abre — mas continua rodando sozinho normalmente com
+`python main.py`, útil para desenvolvimento/depuração isolada.
 
 ## Status
 

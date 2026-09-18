@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from app.services.library_scanner import LibraryScanner
+from soundtrack_app.services.library_scanner import LibraryScanner
 
 FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
 
@@ -106,5 +106,5 @@ def test_scanner_fails_gracefully_for_missing_root(db, tmp_path: Path):
 
 
 def _all_filter(missing_only: bool = False):
-    from app.repositories import TrackFilter
+    from soundtrack_app.repositories import TrackFilter
     return TrackFilter(missing_only=missing_only)

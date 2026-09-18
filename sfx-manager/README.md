@@ -7,10 +7,13 @@ teclas de atalho e exportar um pack para uma pasta própria — sem nunca mover,
 renomear ou apagar os arquivos originais.
 
 Parte da suíte **RPG Audio Toolkit** (veja o [README da raiz](../README.md)).
-É um aplicativo independente do RPG Soundtrack Manager, com UX própria: cor
-de destaque diferente, biblioteca em grade de cards (com alternância para
-lista), categorias por pasta em vez de sections, reprodução simultânea de
-vários efeitos e um sistema de hotkeys de uma tecla só.
+Tem UX própria: cor de destaque diferente, biblioteca em grade de cards
+(com alternância para lista), categorias por pasta em vez de sections,
+reprodução simultânea de vários efeitos e um sistema de hotkeys de uma
+tecla só. Desde a Etapa 5, este módulo é embutido como a página "SFX e
+Packs" do **RPG Audio Studio** (`../rpg-audio-studio/`), que é o app que o
+usuário final abre — mas continua rodando sozinho normalmente com
+`python main.py`, útil para desenvolvimento/depuração isolada.
 
 ## Status
 

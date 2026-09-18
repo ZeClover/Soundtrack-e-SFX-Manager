@@ -9,8 +9,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from app.database import Database  # noqa: E402
-from app.repositories import (
+from soundtrack_app.database import Database  # noqa: E402
+from soundtrack_app.repositories import (
     CampaignRepository,
     HistoryRepository,
     LibraryRootRepository,

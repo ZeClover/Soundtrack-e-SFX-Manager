@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from app.models import SfxTrack
-from app.services.sfx_player_service import SfxPlayerService
+from sfx_app.models import SfxTrack
+from sfx_app.services.sfx_player_service import SfxPlayerService
 
 FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
 

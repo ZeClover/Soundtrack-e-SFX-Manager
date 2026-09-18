@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from app.models import Track
-from app.services.player_service import PlayerService
-from app.ui.dialogs.triage_dialog import TriageDialog
+from soundtrack_app.models import Track
+from soundtrack_app.services.player_service import PlayerService
+from soundtrack_app.ui.dialogs.triage_dialog import TriageDialog
 
 
 def _track(id_: int, title: str) -> Track:

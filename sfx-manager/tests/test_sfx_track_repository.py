@@ -1,4 +1,4 @@
-from app.repositories import SfxTrackFilter
+from sfx_app.repositories import SfxTrackFilter
 
 
 def test_upsert_creates_new_track(track_repo, sample_track_id):

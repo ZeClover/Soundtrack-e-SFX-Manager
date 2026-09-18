@@ -1,5 +1,5 @@
-from app.models import Track
-from app.services.random_picker import pick_random_track
+from soundtrack_app.models import Track
+from soundtrack_app.services.random_picker import pick_random_track
 
 
 def _track(id_: int, title: str) -> Track:

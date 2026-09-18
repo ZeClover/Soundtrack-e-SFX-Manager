@@ -1,0 +1,3 @@
+[tool.pytest.ini_options]
+pythonpath = [".", "../soundtrack-manager", "../sfx-manager"]
+testpaths = ["tests"]

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.models import Track
-from app.services.duplicate_service import DuplicateService
+from soundtrack_app.models import Track
+from soundtrack_app.services.duplicate_service import DuplicateService
 
 
 def _track(

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.models import SfxTrack
-from app.services.duplicate_service import DuplicateService
+from sfx_app.models import SfxTrack
+from sfx_app.services.duplicate_service import DuplicateService
 
 
 def _track(tmp_path: Path, id_: int, title: str, content: bytes, duration: float = 1, partial_hash: str = "h") -> SfxTrack:

@@ -1,4 +1,4 @@
-from app.repositories import TrackFilter
+from soundtrack_app.repositories import TrackFilter
 
 
 def test_set_tags_for_track_replaces_and_creates(tag_repo, track_repo, sample_track_id):
