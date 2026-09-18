@@ -18,28 +18,41 @@ listada abaixo.
 | **PyInstaller** | Não é uma dependência do código do app — é a ferramenta que empacota o `.exe`; seu *bootloader* (pequeno programa que inicia o Python empacotado) fica embutido no executável final | GPLv2-or-later, **com uma exceção explícita** que permite usá-lo para empacotar e distribuir programas não-livres, incluindo comerciais | <https://github.com/pyinstaller/pyinstaller/blob/develop/COPYING.txt> |
 | **Pillow** | Só em tempo de build (`scripts/generate_icon.py`), não fica embutida no `.exe` final — gera os arquivos `icon.ico`/`icon.png` uma vez, que aí sim são distribuídos como imagens | MIT-CMU (variante permissiva do MIT) | <https://github.com/python-pillow/Pillow/blob/main/LICENSE> |
 
-## FFmpeg / FFprobe (binário externo, empacotado opcionalmente)
+## FFmpeg / FFprobe (binário externo, empacotado no build oficial)
 
 O RPG Audio Studio **não redistribui o código-fonte do FFmpeg** — ele usa
-o FFmpeg como um programa externo (chamado via linha de comando), seja
-uma cópia empacotada junto do `.exe` (pasta `ffmpeg/`, se o build incluiu
-uma) ou uma instalação já existente no PATH do sistema do usuário.
+o FFmpeg como um programa externo (chamado via linha de comando), a
+partir de uma cópia empacotada junto do `.exe` (pasta `ffmpeg/`) ou,
+apenas em desenvolvimento, de uma instalação já existente no PATH do
+sistema.
 
-A licença exata do FFmpeg **depende de como o binário específico foi
-compilado**:
+**Origem da cópia empacotada nos releases oficiais do Windows:**
+`BUILD_WINDOWS.bat` baixa automaticamente, via `scripts/fetch_ffmpeg.py`,
+a build **"release essentials"** do FFmpeg para Windows mantida por Gyan
+Doshi:
 
-- A maioria das builds "essentials"/padrão para Windows (ex.: as
-  distribuídas por <https://www.gyan.dev/ffmpeg/builds/> ou
-  <https://www.ffmpeg.org/download.html>) é licenciada como
-  **LGPL v2.1 ou posterior**.
-- Builds com certos componentes extras habilitados (ex.: `--enable-gpl`,
-  codecs específicos) passam a ser **GPL v2 ou posterior**.
+- URL: <https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip>
+- Esta é uma das duas fontes de build para Windows **oficialmente
+  recomendadas na própria página de download do FFmpeg**
+  (<https://www.ffmpeg.org/download.html#build-windows>, junto com o
+  BtbN).
+- **Licença: GPLv3.** O próprio gyan.dev declara que "all builds are
+  64-bit, static and licensed as GPLv3", e o zip traz um `LICENSE.txt`
+  (copiado do repositório do FFmpeg) — esse arquivo é preservado junto do
+  download, e uma cópia dos termos completos está disponível em
+  <https://www.ffmpeg.org/legal.html>.
+- `fetch_ffmpeg.py` confere o checksum SHA256 do download contra
+  `ffmpeg-release-essentials.zip.sha256` (publicado pelo mesmo gyan.dev)
+  antes de extrair e usar os binários — download corrompido ou adulterado
+  faz o script (e o build inteiro) falhar, em vez de seguir em frente.
 
-Ao empacotar uma cópia do FFmpeg junto do `.exe` (via `BUILD_WINDOWS.bat`
-+ pasta `ffmpeg/`), confirme qual licença a build específica que você
-baixou declara (normalmente num arquivo `LICENSE`/`readme` junto do
-download) e mantenha esse arquivo junto da distribuição. Texto completo
-das licenças: <https://www.ffmpeg.org/legal.html>.
+Se você preferir usar uma build LGPL (para evitar as obrigações do GPL
+numa redistribuição fechada) ou qualquer outra fonte, basta colocar
+manualmente `ffmpeg.exe`/`ffprobe.exe` em `rpg-audio-studio/ffmpeg/` antes
+de rodar `BUILD_WINDOWS.bat` — o script detecta que já existem binários
+válidos e não baixa por cima; nesse caso, confirme a licença que a build
+escolhida declara (normalmente num `LICENSE`/`readme` junto do download) e
+mantenha esse arquivo junto da distribuição.
 
 ## Sobre este projeto
 

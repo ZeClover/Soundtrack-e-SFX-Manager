@@ -66,15 +66,19 @@ datas = [
 ]
 
 # ---------------------------------------------------------------------
-# FFmpeg/FFprobe empacotados (item 5) — OPCIONAL neste .spec: se
-# ``rpg-audio-studio/ffmpeg/ffmpeg.exe`` e ``ffprobe.exe`` existirem na
-# hora do build (colocados manualmente ou por BUILD_WINDOWS.bat antes de
-# chamar o PyInstaller), entram na distribuição em uma pasta "ffmpeg/" ao
-# lado do .exe. Se não existirem, o build segue normalmente e o app usa o
-# FFmpeg do PATH do sistema em tempo de execução — ver
-# app/config.py:bundled_ffmpeg_dir() e rpg_audio_shared/ffmpeg_locator.py,
-# que já fazem esse fallback sozinhos, sem precisar saber se o build atual
-# empacotou o FFmpeg ou não.
+# FFmpeg/FFprobe empacotados (item 5): ``BUILD_WINDOWS.bat`` chama
+# ``scripts/fetch_ffmpeg.py`` ANTES do PyInstaller, que baixa/valida
+# ``rpg-audio-studio/ffmpeg/ffmpeg.exe`` e ``ffprobe.exe`` e CANCELA o
+# build inteiro se isso falhar — então, num release oficial, esses dois
+# arquivos sempre existem aqui. Este .spec continua com a checagem
+# condicional abaixo mesmo assim (rede de segurança pra quem rodar
+# ``pyinstaller RPGAudioStudio.spec`` direto, sem passar pelo .bat): se os
+# arquivos existirem, entram na distribuição numa pasta "ffmpeg/" ao lado
+# do .exe; se não existirem, o build ainda funciona, só sai sem FFmpeg
+# empacotado (o app cai pro FFmpeg do PATH do sistema em tempo de
+# execução — ver app/config.py:bundled_ffmpeg_dir() e
+# rpg_audio_shared/ffmpeg_locator.py, que já fazem esse fallback
+# sozinhos).
 # ---------------------------------------------------------------------
 binaries = []
 ffmpeg_source_dir = SPEC_DIR / "ffmpeg"

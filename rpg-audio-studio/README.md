@@ -53,14 +53,15 @@ sem termos técnicos, de como usar o programa pela primeira vez.
 
 O FFmpeg é usado só para converter pra MP3 (na exportação de uma
 soundtrack/pack, ou ao baixar em MP3 no Downloader) — o resto do programa
-funciona sem ele. O `.zip` de release pode ou não trazer o FFmpeg junto,
-dependendo de como aquele build específico foi gerado (veja
-`YTDLP_UPDATE_STRATEGY.md` e `BUILD_WINDOWS.bat` para os detalhes de
-build). Se o programa avisar que o FFmpeg não foi encontrado, baixe uma
-build para Windows em <https://www.ffmpeg.org/download.html> (ou
+funciona sem ele. Os releases oficiais do Windows já vêm com
+`ffmpeg.exe`/`ffprobe.exe` empacotados dentro da pasta `ffmpeg/`, ao lado
+de `RPG Audio Studio.exe` — não é preciso instalar nada à parte nem mexer
+no PATH do Windows. Se, mesmo assim, o programa avisar que o FFmpeg não
+foi encontrado (por exemplo, num build customizado sem essa pasta), baixe
+uma build para Windows em <https://www.ffmpeg.org/download.html> (ou
 <https://www.gyan.dev/ffmpeg/builds/>, "essentials" já basta) e adicione a
-pasta `bin` dela ao PATH do Windows — depois disso o programa encontra o
-FFmpeg sozinho, sem precisar reconfigurar nada dentro dele.
+pasta `bin` dela ao PATH do Windows — o programa cai automaticamente para
+o FFmpeg do PATH quando não encontra a cópia empacotada.
 
 ## Solução de problemas
 
@@ -215,17 +216,27 @@ O script:
    falhar**.
 4. Gera o ícone (se ainda não existir) e o `version_info.txt` (metadados
    do `.exe`, a partir de `app/version.py`).
-5. Empacota com PyInstaller usando `RPGAudioStudio.spec`.
-6. Confirma que `dist\RPG Audio Studio\RPG Audio Studio.exe` realmente
+5. Prepara o FFmpeg/FFprobe empacotados (`scripts/fetch_ffmpeg.py`) —
+   **obrigatório**, não opcional: baixa a build "release essentials" do
+   FFmpeg para Windows de <https://www.gyan.dev/ffmpeg/builds/> (fonte
+   oficialmente recomendada pelo próprio ffmpeg.org), confere o checksum
+   SHA256, extrai `ffmpeg.exe`/`ffprobe.exe` para
+   `rpg-audio-studio\ffmpeg\` e valida cada um rodando `-version`. Se algo
+   falhar (rede, checksum, binário inválido), **o build inteiro é
+   cancelado** em vez de gerar uma distribuição sem suporte a MP3 — veja
+   `THIRD_PARTY_LICENSES.md` para a licença dessa build (GPLv3). É
+   idempotente: se `ffmpeg\` já tiver binários válidos (de um build
+   anterior, ou colocados manualmente — por exemplo, pra usar uma build
+   LGPL em vez desta GPL), não baixa de novo.
+6. Empacota com PyInstaller usando `RPGAudioStudio.spec` (que inclui
+   `ffmpeg\ffmpeg.exe`/`ffprobe.exe` na distribuição, dentro de uma pasta
+   `ffmpeg\` ao lado do `.exe`).
+7. Confirma que `dist\RPG Audio Studio\RPG Audio Studio.exe` realmente
    existe (não considera "o PyInstaller não deu erro" como sucesso).
-7. Gera o `.zip` final em `release\RPG-Audio-Studio-vX.Y.Z-Windows.zip` +
-   um checksum `.sha256` ao lado.
-
-FFmpeg empacotado (opcional, mas recomendado para quem for redistribuir):
-coloque `ffmpeg.exe` e `ffprobe.exe` numa pasta `rpg-audio-studio\ffmpeg\`
-antes de rodar o `BUILD_WINDOWS.bat` — o `.spec` detecta e inclui
-automaticamente. Sem essa pasta, o build sai normalmente e o app cai pro
-FFmpeg do PATH do sistema do usuário final.
+8. Gera o `.zip` final em `release\RPG-Audio-Studio-vX.Y.Z-Windows.zip` +
+   um checksum `.sha256` ao lado (a versão vem de `app/version.py` via
+   `scripts/print_version.py` — o build cancela se não conseguir ler a
+   versão, em vez de gerar um arquivo nomeado incorretamente).
 
 Depois do build, **abra o `.exe` gerado e navegue pelo programa antes de
 distribuir** — "o PyInstaller terminou" não é a mesma coisa que "o

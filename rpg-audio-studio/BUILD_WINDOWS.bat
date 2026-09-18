@@ -105,21 +105,32 @@ if errorlevel 1 (
 )
 
 rem ------------------------------------------------------------------
-rem 4) FFmpeg empacotado (opcional, mas recomendado): se o usuario ja
-rem    colocou ffmpeg.exe/ffprobe.exe em rpg-audio-studio\ffmpeg\, o
-rem    .spec inclui na distribuicao. Se nao, so avisa e segue - o app
-rem    cai pro FFmpeg do PATH do sistema em tempo de execucao.
+rem 4) FFmpeg/FFprobe empacotados: OBRIGATORIO num release oficial - sem
+rem    isso o Downloader e a exportacao em MP3 ficam sem funcionar em
+rem    quem nao ja tiver FFmpeg no PATH (foi exatamente isso que saiu
+rem    errado no primeiro build). scripts\fetch_ffmpeg.py baixa a build
+rem    "release essentials" do FFmpeg pra Windows (gyan.dev - uma das
+rem    fontes recomendadas na propria pagina oficial de download do
+rem    FFmpeg), confere o checksum SHA256, e valida cada binario rodando
+rem    "-version" - se qualquer passo falhar, o build para aqui, em vez
+rem    de gerar silenciosamente uma distribuicao sem suporte a MP3.
+rem    E idempotente: se ffmpeg\ja tiver binarios validos (colocados a
+rem    mao ou de um build anterior), pula o download.
 rem ------------------------------------------------------------------
 echo.
-if exist "ffmpeg\ffmpeg.exe" if exist "ffmpeg\ffprobe.exe" (
-    echo FFmpeg encontrado em ffmpeg\ - sera incluido na distribuicao.
-) else (
-    echo [AVISO] ffmpeg\ffmpeg.exe / ffprobe.exe nao encontrados.
-    echo A distribuicao vai sair SEM FFmpeg empacotado - MP3 so vai
-    echo funcionar em maquinas que ja tem FFmpeg no PATH do sistema.
-    echo Para empacotar: baixe uma build estatica do FFmpeg para Windows
-    echo ^(https://www.gyan.dev/ffmpeg/builds/ - "essentials" ja basta^)
-    echo e coloque ffmpeg.exe e ffprobe.exe em "rpg-audio-studio\ffmpeg\".
+echo ============================================================
+echo   Preparando FFmpeg/FFprobe empacotados...
+echo ============================================================
+%PY% scripts\fetch_ffmpeg.py
+if errorlevel 1 (
+    echo.
+    echo [ERRO] Nao foi possivel preparar o FFmpeg/FFprobe empacotados.
+    echo O build foi CANCELADO - sem isso a distribuicao final sairia sem
+    echo suporte a MP3 pra quem nao ja tiver FFmpeg no PATH, e ninguem
+    echo perceberia ate testar o Downloader ou uma exportacao.
+    echo Veja a mensagem de erro acima ^(rede, checksum ou binario invalido^).
+    pause
+    exit /b 1
 )
 
 rem ------------------------------------------------------------------
@@ -159,7 +170,15 @@ echo.
 rem ------------------------------------------------------------------
 rem 6) Empacota o ZIP final + checksum SHA256 (release/).
 rem ------------------------------------------------------------------
-for /f "delims=" %%v in ('%PY% -c "import sys; sys.path.insert(0, '.'); from app.version import APP_VERSION; print(APP_VERSION)"') do set APP_VERSION=%%v
+set APP_VERSION=
+for /f "delims=" %%v in ('%PY% scripts\print_version.py') do set APP_VERSION=%%v
+
+if "%APP_VERSION%"=="" (
+    echo [ERRO] Nao foi possivel obter a versao do aplicativo ^(app/version.py^).
+    echo O ZIP final nao pode ser nomeado corretamente. Build CANCELADO.
+    pause
+    exit /b 1
+)
 
 if not exist "release" mkdir "release"
 set ZIP_NAME=RPG-Audio-Studio-v%APP_VERSION%-Windows.zip
