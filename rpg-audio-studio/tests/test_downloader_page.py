@@ -1,6 +1,7 @@
 """Testes da página do Downloader — reaproveita os mocks de yt-dlp de
-test_download_worker.py e roda o worker de forma síncrona (start() vira
-run(), assim como os outros testes do repositório fazem com QThread)."""
+downloader_test_helpers.py (compartilhados com test_download_worker.py) e
+roda o worker de forma síncrona (start() vira run(), assim como os outros
+testes do repositório fazem com QThread)."""
 
 from __future__ import annotations
 
@@ -9,7 +10,8 @@ from pathlib import Path
 from modules.downloader.models import AudioFormat, DownloadReport
 from modules.downloader.services.download_worker import DownloadWorker
 from modules.downloader.ui.downloader_page import DownloaderPage
-from tests.test_download_worker import _fail, _finish, make_fake_ydl_class
+
+from .downloader_test_helpers import _fail, _finish, make_fake_ydl_class
 
 
 def _make_synchronous_page(monkeypatch, ydl_class, tmp_path: Path) -> DownloaderPage:

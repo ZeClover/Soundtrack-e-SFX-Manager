@@ -6,7 +6,8 @@ from pathlib import Path
 
 from soundtrack_app.models import SoundtrackSection, Track
 from soundtrack_app.services.export_service import ExportOptions, ExportService
-from tests.test_export_service import _item, _make_track
+
+from export_test_helpers import _item, _make_track
 
 
 def _section(section_id: int, name: str, position: int) -> SoundtrackSection:

@@ -4,26 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from soundtrack_app.models import SoundtrackItem, Track
+from soundtrack_app.models import Track
 from soundtrack_app.services.export_service import ExportOptions, ExportService
 
+from export_test_helpers import _item, _make_track
+
 FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
-
-
-def _make_track(tmp_path: Path, name: str, suffix: str = ".mp3", content: bytes = b"fake") -> Track:
-    path = tmp_path / f"{name}{suffix}"
-    path.write_bytes(content)
-    return Track(
-        id=1, library_root_id=1, absolute_path=str(path), relative_path=path.name,
-        filename=path.name, extension=suffix, title=name, artist=None, album=None,
-        duration_seconds=10, file_size=len(content), partial_hash="h", has_embedded_cover=False,
-        is_favorite=False, note="", is_missing=False, play_count=0, last_played_at=None,
-        date_detected="now", updated_at="now",
-    )
-
-
-def _item(track: Track, position: int, section_id: int | None = None) -> SoundtrackItem:
-    return SoundtrackItem(id=position, soundtrack_id=1, section_id=section_id, track_id=track.id, position=position, track=track)
 
 
 def test_export_copies_files_with_numbering(tmp_path: Path):
