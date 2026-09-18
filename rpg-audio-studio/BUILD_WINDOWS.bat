@@ -26,8 +26,10 @@ if not exist "..\sfx-manager\sfx_app" (
 
 rem ------------------------------------------------------------------
 rem 1) Ambiente: reusa o .venv do projeto (mesma logica do INSTALAR.bat),
-rem    e garante que pyinstaller + pillow tambem estao instalados nele -
-rem    sao so ferramentas de build, nao vao pro requirements.txt do app.
+rem    e garante que as dependencias de dev/build (pytest, pyinstaller,
+rem    pyinstaller-hooks-contrib, pillow - requirements-dev.txt) tambem
+rem    estao instaladas nele, mesmo que o usuario tenha rodado uma versao
+rem    antiga do INSTALAR.bat que ainda nao instalava esse arquivo.
 rem ------------------------------------------------------------------
 if not exist ".venv\Scripts\python.exe" (
     echo [ERRO] Ambiente virtual nao encontrado em ".venv".
@@ -46,10 +48,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Instalando ferramentas de build ^(pyinstaller, pyinstaller-hooks-contrib, pillow^)...
-%PY% -m pip install "pyinstaller>=6.0" "pyinstaller-hooks-contrib" "pillow"
+echo Instalando dependencias de desenvolvimento/build ^(pytest, pyinstaller,
+echo pyinstaller-hooks-contrib, pillow^)...
+%PY% -m pip install -r requirements-dev.txt
 if errorlevel 1 (
-    echo [ERRO] Falha ao instalar as ferramentas de build.
+    echo [ERRO] Falha ao instalar as dependencias de desenvolvimento/build.
     pause
     exit /b 1
 )

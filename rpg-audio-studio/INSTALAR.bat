@@ -74,6 +74,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo Instalando dependencias de desenvolvimento/build ^(testes automatizados
+echo e geracao do executavel - necessarias para rodar BUILD_WINDOWS.bat depois^)...
+".venv\Scripts\python.exe" -m pip install -r requirements-dev.txt
+if errorlevel 1 (
+    echo.
+    echo [ERRO] Falha ao instalar as dependencias de desenvolvimento/build.
+    echo Veja a mensagem acima.
+    pause
+    exit /b 1
+)
+
 echo.
 where ffmpeg >nul 2>nul
 if errorlevel 1 (

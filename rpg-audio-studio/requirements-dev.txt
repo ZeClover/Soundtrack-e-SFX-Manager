@@ -1,0 +1,9 @@
+# Dependencias de desenvolvimento/build (testes automatizados + geracao do
+# executavel .exe) — nao sao necessarias so pra RODAR o programa (isso e
+# requirements.txt); instaladas por INSTALAR.bat e usadas por
+# BUILD_WINDOWS.bat, pra nenhum dos dois depender de "pip install" manual
+# fora do fluxo.
+pytest>=7.0
+pyinstaller>=6.0
+pyinstaller-hooks-contrib
+pillow

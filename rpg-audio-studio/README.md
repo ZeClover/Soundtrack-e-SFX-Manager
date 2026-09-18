@@ -166,6 +166,13 @@ cd rpg-audio-studio
 pytest
 ```
 
+`pytest` é uma dependência de desenvolvimento (`requirements-dev.txt`, ao
+lado de `pyinstaller`/`pillow` usados no build), não do programa em si —
+`INSTALAR.bat` já instala esse arquivo automaticamente, então rodar
+`pytest` depois de `INSTALAR.bat` funciona sem nenhum passo manual extra;
+em modo de desenvolvimento fora do `.bat`, instale com
+`pip install -r requirements-dev.txt`.
+
 Junto com `shared/tests`, `soundtrack-manager/tests` e `sfx-manager/tests`,
 a suíte inteira do projeto cobre: navegação do shell, integração real dos
 módulos Música e SFX dentro do shell, o serviço do Downloader inteiro com
@@ -197,8 +204,13 @@ BUILD_WINDOWS.bat
 O script:
 
 1. Confere se `soundtrack-manager/` e `sfx-manager/` estão presentes.
-2. Instala/atualiza as dependências do app e as ferramentas de build
-   (`pyinstaller`, `pyinstaller-hooks-contrib`, `pillow`) no `.venv`.
+2. Instala/atualiza as dependências do app (`requirements.txt`) e as de
+   desenvolvimento/build — `pytest`, `pyinstaller`,
+   `pyinstaller-hooks-contrib`, `pillow` (`requirements-dev.txt`) — no
+   `.venv`. `INSTALAR.bat` já instala `requirements-dev.txt` também, então
+   normalmente isto só confirma que está tudo lá; rodar `BUILD_WINDOWS.bat`
+   sozinho (sem ter passado por `INSTALAR.bat` antes) também funciona,
+   desde que o `.venv` já exista.
 3. Roda a suíte de testes inteira — **cancela o build se algum teste
    falhar**.
 4. Gera o ícone (se ainda não existir) e o `version_info.txt` (metadados
