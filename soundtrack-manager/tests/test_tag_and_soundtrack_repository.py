@@ -32,6 +32,160 @@ def test_search_matches_tag_name(tag_repo, track_repo, sample_track_id):
     assert len(results) == 1
 
 
+def test_tag_list_all_reports_usage_count(tag_repo, track_repo, sample_track_id, library_root_repo):
+    """Regressão do gerenciador de tags: a lista precisa mostrar quantas
+    músicas usam cada tag."""
+    other_track_id = track_repo.upsert_from_scan(
+        library_root_id=library_root_repo.get_or_create("/library"),
+        absolute_path="/library/other.mp3", relative_path="other.mp3",
+        filename="other.mp3", extension=".mp3", title="Other", artist=None, album=None,
+        duration_seconds=10, file_size=100, partial_hash="other", has_embedded_cover=False,
+    )
+    tag_repo.set_tags_for_track(sample_track_id, ["combate"])
+    tag_repo.set_tags_for_track(other_track_id, ["combate", "explorar"])
+    tag_repo.get_or_create("sem uso")
+
+    by_name = {t.name: t.usage_count for t in tag_repo.list_all()}
+    assert by_name["combate"] == 2
+    assert by_name["explorar"] == 1
+    assert by_name["sem uso"] == 0
+
+
+def test_tag_rename_preserves_track_associations(tag_repo, track_repo, sample_track_id):
+    """Renomear uma tag tem que continuar valendo pra mesma tag — a musica
+    nao pode perder a associacao."""
+    tag_repo.set_tags_for_track(sample_track_id, ["boss", "combate"])
+    boss = tag_repo.get_or_create("boss")
+
+    renamed = tag_repo.rename(boss.id, "chefe")
+
+    assert renamed.id == boss.id
+    names = sorted(t.name for t in tag_repo.list_all())
+    assert names == ["chefe", "combate"]
+
+    track = track_repo.get_by_id(sample_track_id)
+    assert sorted(track.tags) == ["chefe", "combate"]
+
+
+def test_tag_rename_onto_existing_name_merges_without_duplicating(
+    tag_repo, track_repo, sample_track_id, library_root_repo
+):
+    """Se o novo nome ja pertence a outra tag, renomear nao pode criar uma
+    tag duplicada nem falhar com erro de UNIQUE — as duas viram uma so, e
+    as musicas de ambas continuam com a tag (agora unificada)."""
+    other_track_id = track_repo.upsert_from_scan(
+        library_root_id=library_root_repo.get_or_create("/library"),
+        absolute_path="/library/other.mp3", relative_path="other.mp3",
+        filename="other.mp3", extension=".mp3", title="Other", artist=None, album=None,
+        duration_seconds=10, file_size=100, partial_hash="other", has_embedded_cover=False,
+    )
+    tag_repo.set_tags_for_track(sample_track_id, ["boss"])
+    tag_repo.set_tags_for_track(other_track_id, ["chefe"])
+    boss = tag_repo.get_or_create("boss")
+    chefe = tag_repo.get_or_create("chefe")
+
+    merged = tag_repo.rename(boss.id, "chefe")
+
+    assert merged.id == chefe.id  # a tag existente foi mantida, nao duplicada
+    all_tags = tag_repo.list_all()
+    assert [t.name for t in all_tags] == ["chefe"]  # nenhuma duplicata
+    assert all_tags[0].usage_count == 2  # as duas musicas continuam com a tag
+
+    assert track_repo.get_by_id(sample_track_id).tags == ["chefe"]
+    assert track_repo.get_by_id(other_track_id).tags == ["chefe"]
+
+
+def test_tag_rename_merge_does_not_error_when_track_already_has_both(
+    tag_repo, track_repo, sample_track_id
+):
+    """Uma musica que ja tem as duas tags (a que sera renomeada e a que ja
+    existe com o nome novo) nao pode causar erro de chave duplicada no
+    merge — so deve sobrar uma associacao."""
+    tag_repo.set_tags_for_track(sample_track_id, ["boss", "chefe"])
+    boss = tag_repo.get_or_create("boss")
+
+    tag_repo.rename(boss.id, "chefe")  # nao deve lancar
+
+    track = track_repo.get_by_id(sample_track_id)
+    assert track.tags == ["chefe"]
+
+
+def test_tag_delete_removes_only_the_tag_never_the_track(tag_repo, track_repo, sample_track_id):
+    """Excluir uma tag remove so ela e suas associacoes — a musica continua
+    existindo com o resto dos dados intactos."""
+    track_repo.set_favorite(sample_track_id, True)
+    track_repo.set_note(sample_track_id, "Usar no clímax da sessão")
+    tag_repo.set_tags_for_track(sample_track_id, ["boss", "combate"])
+    boss = tag_repo.get_or_create("boss")
+
+    tag_repo.delete(boss.id)
+
+    assert [t.name for t in tag_repo.list_all()] == ["combate"]
+    track = track_repo.get_by_id(sample_track_id)
+    assert track is not None  # a musica continua existindo
+    assert track.tags == ["combate"]
+    assert track.is_favorite is True
+    assert track.note == "Usar no clímax da sessão"
+
+
+def test_tag_delete_unused_never_touches_tags_in_use(tag_repo, track_repo, sample_track_id):
+    """A limpeza de tags sem uso (ja existente) nao pode remover tags que
+    ainda estao associadas a alguma musica."""
+    tag_repo.set_tags_for_track(sample_track_id, ["combate"])
+    tag_repo.get_or_create("abandonada 1")
+    tag_repo.get_or_create("abandonada 2")
+
+    removed_count = tag_repo.delete_unused()
+
+    assert removed_count == 2
+    assert [t.name for t in tag_repo.list_all()] == ["combate"]
+    assert track_repo.get_by_id(sample_track_id).tags == ["combate"]
+
+
+def test_tag_operations_never_lose_unrelated_data(
+    tag_repo, track_repo, campaign_repo, soundtrack_repo, history_repo, sample_track_id
+):
+    """Regressão ampla: renomear, excluir e limpar tags não podem afetar
+    favoritos, observações, campanhas, uso em soundtrack ou histórico de
+    reprodução — nem da música mexida, nem de nenhuma outra."""
+    track_repo.set_favorite(sample_track_id, True)
+    track_repo.set_note(sample_track_id, "Nota importante da campanha")
+    track_repo.register_play(sample_track_id)
+    campaign_repo.set_campaigns_for_track(sample_track_id, ["Darkrem"])
+    tag_repo.set_tags_for_track(sample_track_id, ["boss", "combate", "sem uso"])
+    st = soundtrack_repo.create("Sessão 12")
+    soundtrack_repo.add_track(st.id, sample_track_id)
+
+    boss = tag_repo.get_or_create("boss")
+    combate = tag_repo.get_or_create("combate")
+
+    # 1) Renomear uma tag em uso.
+    tag_repo.rename(boss.id, "chefão")
+    # 2) Excluir outra tag em uso.
+    tag_repo.delete(combate.id)
+    # 3) Limpar tags sem uso (a "sem uso" real, e a "chefão"/"combate" não
+    #    contam porque nenhuma delas ficou sem associação além da "sem uso").
+    tag_repo.get_or_create("órfã")  # nunca associada a nenhuma música
+    removed = tag_repo.delete_unused()
+
+    assert removed == 1  # só a "órfã" — nunca a "sem uso", que ainda está na faixa
+    track = track_repo.get_by_id(sample_track_id)
+
+    assert track is not None
+    assert sorted(track.tags) == ["chefão", "sem uso"]
+    assert track.is_favorite is True
+    assert track.note == "Nota importante da campanha"
+    assert track.campaigns == ["Darkrem"]
+    assert track.in_soundtrack_count == 1
+
+    assert soundtrack_repo.has_track(st.id, sample_track_id) is True
+    assert [item.track.title for item in soundtrack_repo.get_items(st.id)] == [track.title]
+
+    recent = history_repo.recent_tracks()
+    assert len(recent) == 1
+    assert recent[0].id == sample_track_id
+
+
 def test_campaign_association(campaign_repo, track_repo, sample_track_id):
     campaign_repo.set_campaigns_for_track(sample_track_id, ["Darkrem", "One Piece"])
     track = track_repo.get_by_id(sample_track_id)

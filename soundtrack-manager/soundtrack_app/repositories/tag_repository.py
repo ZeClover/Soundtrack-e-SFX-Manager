@@ -20,7 +20,7 @@ class TagRepository:
             ORDER BY tg.name COLLATE NOCASE ASC
             """
         )
-        return [Tag(id=row["id"], name=row["name"]) for row in rows]
+        return [Tag(id=row["id"], name=row["name"], usage_count=row["usage_count"]) for row in rows]
 
     def get_or_create(self, name: str) -> Tag:
         name = name.strip()
@@ -67,3 +67,38 @@ class TagRepository:
             "DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM track_tags)"
         )
         return cursor.rowcount
+
+    def rename(self, tag_id: int, new_name: str) -> Tag:
+        """Renomeia a tag preservando todas as associações com faixas. Se já
+        existir outra tag com o mesmo nome (case-insensitive, mesma regra do
+        UNIQUE da coluna), faz merge em vez de duplicar ou falhar: move as
+        associações da tag antiga para a existente e remove a antiga — assim
+        nenhuma faixa perde a tag e nunca sobra duplicata."""
+        new_name = new_name.strip()
+        if not new_name:
+            raise ValueError("O nome da tag não pode ficar vazio.")
+
+        with self._db.transaction() as conn:
+            existing = conn.execute(
+                "SELECT id, name FROM tags WHERE name = ? COLLATE NOCASE AND id != ?",
+                (new_name, tag_id),
+            ).fetchone()
+            if existing is not None:
+                target_id = existing["id"]
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO track_tags (track_id, tag_id)
+                    SELECT track_id, ? FROM track_tags WHERE tag_id = ?
+                    """,
+                    (target_id, tag_id),
+                )
+                conn.execute("DELETE FROM tags WHERE id = ?", (tag_id,))
+                return Tag(id=target_id, name=existing["name"])
+
+            conn.execute("UPDATE tags SET name = ? WHERE id = ?", (new_name, tag_id))
+            return Tag(id=tag_id, name=new_name)
+
+    def delete(self, tag_id: int) -> None:
+        """Remove a tag e suas associações (track_tags, via ON DELETE CASCADE) —
+        as faixas em si nunca são tocadas."""
+        self._db.execute("DELETE FROM tags WHERE id = ?", (tag_id,))

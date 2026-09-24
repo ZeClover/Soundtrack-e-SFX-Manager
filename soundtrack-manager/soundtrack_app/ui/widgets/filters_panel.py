@@ -62,7 +62,15 @@ class FiltersPanel(QWidget):
         self.campaign_combo.currentIndexChanged.connect(self.filters_changed)
         layout.addWidget(self.campaign_combo)
 
-        layout.addWidget(_section_title("Tags"))
+        tags_header = QHBoxLayout()
+        tags_header.addWidget(_section_title("Tags"))
+        tags_header.addStretch(1)
+        self.manage_tags_button = QPushButton("Gerenciar...")
+        self.manage_tags_button.setFlat(True)
+        self.manage_tags_button.setStyleSheet("color: #5b8cff; padding: 0;")
+        tags_header.addWidget(self.manage_tags_button)
+        layout.addLayout(tags_header)
+
         self.tags_list = QListWidget()
         self.tags_list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
         self.tags_list.itemChanged.connect(self.filters_changed)

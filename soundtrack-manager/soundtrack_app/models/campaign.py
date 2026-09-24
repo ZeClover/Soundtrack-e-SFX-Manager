@@ -13,3 +13,4 @@ class Campaign:
 class Tag:
     id: int
     name: str
+    usage_count: int = 0

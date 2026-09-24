@@ -164,6 +164,54 @@ def test_close_and_reopen_preserves_data(tmp_path: Path, qt_core_app):
         window2.db.close()
 
 
+def test_manage_tags_refreshes_sidebar_autocomplete_and_keeps_selection(main_window, tmp_path: Path):
+    """Regressão do gerenciador de tags: depois de renomear/excluir pelo
+    diálogo, o filtro lateral e o autocomplete do campo de tags precisam
+    refletir a mudança na hora, e a música selecionada continua selecionada."""
+    root_id = main_window.library_root_repo.get_or_create(str(tmp_path))
+    track_id = main_window.track_repo.upsert_from_scan(
+        library_root_id=root_id, absolute_path=str(tmp_path / "boss.mp3"), relative_path="boss.mp3",
+        filename="boss.mp3", extension=".mp3", title="Boss Final", artist=None, album=None,
+        duration_seconds=10, file_size=100, partial_hash="h", has_embedded_cover=False,
+    )
+    main_window._current_library_root_id = root_id
+    main_window._on_tags_edited(track_id, ["boss", "combate"])
+    main_window.refresh_library()
+    main_window.library_panel.select_track_id(track_id)
+
+    assert main_window.library_panel.selected_track().id == track_id
+    sidebar_names_before = {
+        main_window.filters_panel.tags_list.item(i).text()
+        for i in range(main_window.filters_panel.tags_list.count())
+    }
+    assert sidebar_names_before == {"boss", "combate"}
+
+    from soundtrack_app.ui.dialogs.tag_manager_dialog import TagManagerDialog
+
+    dialog = TagManagerDialog(main_window.tag_repo, parent=main_window)
+    boss_tag = main_window.tag_repo.get_or_create("boss")
+    dialog._tag_repo.rename(boss_tag.id, "chefão")
+    dialog.changed = True
+
+    # Mesmo caminho que main_window._on_manage_tags() segue depois de dialog.exec().
+    main_window._reload_filter_options()
+    main_window.refresh_library()
+
+    sidebar_names_after = {
+        main_window.filters_panel.tags_list.item(i).text()
+        for i in range(main_window.filters_panel.tags_list.count())
+    }
+    assert sidebar_names_after == {"chefão", "combate"}  # filtro lateral atualizado
+
+    autocomplete_names = main_window.library_panel._tags_completer.model().stringList()
+    assert set(autocomplete_names) == {"chefão", "combate"}  # autocomplete atualizado
+
+    # A música continua selecionada depois do refresh.
+    assert main_window.library_panel.selected_track() is not None
+    assert main_window.library_panel.selected_track().id == track_id
+    assert sorted(main_window.library_panel.selected_track().tags) == ["chefão", "combate"]
+
+
 def _run_scan_synchronously(main_window, folder: Path) -> None:
     """Executa o LibraryScanner de forma síncrona (sem QThread) apenas para o teste."""
     from soundtrack_app.services.library_scanner import LibraryScanner

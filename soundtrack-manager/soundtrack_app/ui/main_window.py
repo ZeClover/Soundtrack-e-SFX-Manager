@@ -47,6 +47,7 @@ from soundtrack_app.ui.dialogs.export_dialog import ExportDialog
 from soundtrack_app.ui.dialogs.export_report_dialog import ExportReportDialog
 from soundtrack_app.ui.dialogs.history_dialog import HistoryDialog
 from soundtrack_app.ui.dialogs.scan_progress_dialog import ScanProgressDialog
+from soundtrack_app.ui.dialogs.tag_manager_dialog import TagManagerDialog
 from soundtrack_app.ui.dialogs.triage_dialog import TriageDialog
 from soundtrack_app.ui.widgets.filters_panel import FiltersPanel
 from soundtrack_app.ui.widgets.library_panel import LibraryPanel
@@ -156,6 +157,7 @@ class MainWindow(QWidget):
     def _connect_signals(self) -> None:
         self.filters_panel.filters_changed.connect(self.refresh_library)
         self.filters_panel.manage_campaigns_button.clicked.connect(self._on_manage_campaigns)
+        self.filters_panel.manage_tags_button.clicked.connect(self._on_manage_tags)
         self.library_panel.search_changed.connect(lambda _: self.refresh_library())
         self.library_panel.play_requested.connect(self._on_play_from_library)
         self.library_panel.add_to_soundtrack_requested.connect(self._on_add_to_soundtrack)
@@ -403,6 +405,13 @@ class MainWindow(QWidget):
 
     def _on_manage_campaigns(self) -> None:
         dialog = CampaignManagerDialog(self.campaign_repo, parent=self)
+        dialog.exec()
+        if dialog.changed:
+            self._reload_filter_options()
+            self.refresh_library()
+
+    def _on_manage_tags(self) -> None:
+        dialog = TagManagerDialog(self.tag_repo, parent=self)
         dialog.exec()
         if dialog.changed:
             self._reload_filter_options()
